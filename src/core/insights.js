@@ -186,6 +186,11 @@ function cardLoad(subs, cards = [], opts = {}) {
     loads[card].items.push({ sub: s, amount });
   }
 
+  // Kullanici bir kart tanimladiysa, o ay hic yuku olmasa da tabloda gorunsun.
+  for (const c of cards || []) {
+    if (c.last4 && !loads[c.last4]) loads[c.last4] = { last4: c.last4, total: 0, items: [] };
+  }
+
   return Object.values(loads).map((l) => {
     const meta = (cards || []).find((c) => c.last4 === l.last4);
     const limit = meta && Number(meta.monthlyLimit) > 0 ? Number(meta.monthlyLimit) : null;
@@ -210,8 +215,8 @@ function alerts(subs, cards, opts = {}) {
     out.push({
       level: 'kritik',
       type: 'deneme',
-      title: `${t.sub.name} denemesi ${t.inDays} gun icinde bitiyor`,
-      detail: 'Iptal etmezsen ucretli plana gecer.',
+      title: `${t.sub.name} denemesi ${t.inDays} gün içinde bitiyor`,
+      detail: 'İptal etmezsen ücretli plana geçer.',
       sub: t.sub
     });
   }
@@ -221,15 +226,15 @@ function alerts(subs, cards, opts = {}) {
       out.push({
         level: 'kritik',
         type: 'kart',
-        title: `${c.last4} kartinda limit asimi riski`,
-        detail: `Bu ay ${money.formatMoney(c.total, base)} dusecek, limit ${money.formatMoney(c.limit, base)}.`
+        title: `${c.last4} kartında limit aşımı riski`,
+        detail: `Bu ay ${money.formatMoney(c.total, base)} düşecek, limit ${money.formatMoney(c.limit, base)}.`
       });
     } else if (c.warning) {
       out.push({
         level: 'uyari',
         type: 'kart',
-        title: `${c.last4} karti limitinin %${Math.round(c.usageRatio * 100)}'inde`,
-        detail: `Bu ay ${money.formatMoney(c.total, base)} dusecek.`
+        title: `${c.last4} kartı limitinin %${Math.round(c.usageRatio * 100)}'inde`,
+        detail: `Bu ay ${money.formatMoney(c.total, base)} düşecek.`
       });
     }
   }
@@ -239,8 +244,8 @@ function alerts(subs, cards, opts = {}) {
     out.push({
       level: d.priority === 'yuksek' ? 'uyari' : 'bilgi',
       type: 'olu',
-      title: `${d.sub.name} ${d.idleDays} gundur kullanilmadi`,
-      detail: `Yilda ${money.formatMoney(d.yearly, base)} odeniyor. Iptal adayi.`,
+      title: `${d.sub.name} ${d.idleDays} gündür kullanılmadı`,
+      detail: `Yılda ${money.formatMoney(d.yearly, base)} ödeniyor. İptal adayı.`,
       sub: d.sub
     });
   }
@@ -250,7 +255,7 @@ function alerts(subs, cards, opts = {}) {
     out.push({
       level: 'bilgi',
       type: 'cakisma',
-      title: `${o.categoryLabel}: ${o.count} ayri abonelik`,
+      title: `${o.categoryLabel}: ${o.count} ayrı abonelik`,
       detail: `${o.items.map((i) => i.sub.name).join(', ')}. Tek servise inersen ayda ${money.formatMoney(o.potentialMonthlySaving, base)} kalir.`
     });
   }
@@ -259,7 +264,7 @@ function alerts(subs, cards, opts = {}) {
     out.push({
       level: 'bilgi',
       type: 'yenileme',
-      title: `${u.sub.name} ${u.inDays} gun icinde yenileniyor`,
+      title: `${u.sub.name} ${u.inDays} gün içinde yenileniyor`,
       detail: `${money.formatMoney(u.sub.amount, u.sub.currency)} ${u.sub.cardLast4 ? `· ${u.sub.cardLast4} karti` : ''}`.trim(),
       sub: u.sub
     });

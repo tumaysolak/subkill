@@ -140,7 +140,7 @@ ipcMain.handle('gmail:scan', async (_e, creds) => {
   const gmail = require('./services/gmail');
   const pass = (creds && creds.appPassword) || readPassword();
   const user = (creds && creds.user) || store.get().settings.gmailUser;
-  if (!user || !pass) return { ok: false, error: 'Once Gmail adresi ve uygulama sifresi girilmeli.' };
+  if (!user || !pass) return { ok: false, error: 'Önce Gmail adresi ve uygulama şifresi girilmeli.' };
 
   try {
     const report = await gmail.scan({
@@ -163,10 +163,10 @@ ipcMain.handle('gmail:apply', (_e, records) => {
 function friendlyGmailError(err) {
   const msg = String((err && err.message) || err);
   if (/AUTHENTICATIONFAILED|Invalid credentials|LOGIN failed/i.test(msg)) {
-    return 'Gmail girisi reddedildi. Hesap parolasi degil, Google "uygulama sifresi" gerekiyor (myaccount.google.com/apppasswords).';
+    return 'Gmail girişi reddedildi. Hesap parolası değil, Google "uygulama şifresi" gerekiyor (myaccount.google.com/apppasswords).';
   }
-  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED/i.test(msg)) return 'Gmail sunucusuna ulasilamadi. Internet baglantisini kontrol edin.';
-  if (/IMAP.*disabled|\[ALERT\]/i.test(msg)) return 'Gmail hesabinda IMAP kapali olabilir. Gmail ayarlarindan IMAP erisimini acin.';
+  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED/i.test(msg)) return 'Gmail sunucusuna ulaşılamadı. İnternet bağlantısını kontrol edin.';
+  if (/IMAP.*disabled|\[ALERT\]/i.test(msg)) return 'Gmail hesabında IMAP kapalı olabilir. Gmail ayarlarından IMAP erişimini açın.';
   return msg;
 }
 
@@ -191,7 +191,7 @@ ipcMain.handle('fx:refresh', async () => {
     store.updateSettings({ rates: { ...current, ...rates }, ratesUpdatedAt: updatedAt });
     return { ok: true, rates, updatedAt, state: buildState() };
   } catch (err) {
-    return { ok: false, error: `Kur guncellenemedi: ${String(err.message || err)}` };
+    return { ok: false, error: `Kur güncellenemedi: ${String(err.message || err)}` };
   }
 });
 
@@ -206,7 +206,7 @@ ipcMain.handle('shell:open', (_e, url) => {
 
 ipcMain.handle('data:export', async () => {
   const { filePath, canceled } = await dialog.showSaveDialog(win, {
-    title: 'Veriyi disari aktar',
+    title: 'Veriyi dışarı aktar',
     defaultPath: `subkill-yedek-${new Date().toISOString().slice(0, 10)}.json`,
     filters: [{ name: 'JSON', extensions: ['json'] }]
   });
@@ -217,7 +217,7 @@ ipcMain.handle('data:export', async () => {
 
 ipcMain.handle('data:import', async () => {
   const { filePaths, canceled } = await dialog.showOpenDialog(win, {
-    title: 'Veri dosyasi sec',
+    title: 'Veri dosyası seç',
     properties: ['openFile'],
     filters: [{ name: 'JSON', extensions: ['json'] }]
   });
@@ -243,7 +243,7 @@ function csvEscape(v) {
 
 ipcMain.handle('data:exportCsv', async () => {
   const { filePath, canceled } = await dialog.showSaveDialog(win, {
-    title: 'CSV olarak disari aktar',
+    title: 'CSV olarak dışarı aktar',
     defaultPath: `subkill-abonelikler-${new Date().toISOString().slice(0, 10)}.csv`,
     filters: [{ name: 'CSV', extensions: ['csv'] }]
   });
@@ -290,7 +290,7 @@ function parseCsv(text) {
 
 ipcMain.handle('data:importCsv', async () => {
   const { filePaths, canceled } = await dialog.showOpenDialog(win, {
-    title: 'CSV dosyasi sec',
+    title: 'CSV dosyası seç',
     properties: ['openFile'],
     filters: [{ name: 'CSV', extensions: ['csv'] }]
   });

@@ -17,7 +17,7 @@ function fetchText(url, timeoutMs = 10000) {
       res.on('data', (c) => { body += c; });
       res.on('end', () => resolve(body));
     });
-    req.setTimeout(timeoutMs, () => { req.destroy(new Error('Zaman asimi')); });
+    req.setTimeout(timeoutMs, () => { req.destroy(new Error('Zaman aşımı')); });
     req.on('error', reject);
   });
 }
@@ -48,7 +48,7 @@ function parseTcmb(xml) {
 async function fetchRates() {
   const xml = await fetchText(TCMB_URL);
   const rates = parseTcmb(xml);
-  if (!rates.USD) throw new Error('Kur verisi okunamadi.');
+  if (!rates.USD) throw new Error('Kur verisi okunamadı.');
   return { rates, updatedAt: new Date().toISOString(), source: 'TCMB' };
 }
 

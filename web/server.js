@@ -18,7 +18,9 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM = process.env.MAIL_FROM || 'SubKill <merhaba@getsubkill.com>';
 const NOTIFY_TO = process.env.NOTIFY_TO || '';
 const DOWNLOAD_MAC = process.env.DOWNLOAD_MAC || '';
+const DOWNLOAD_MAC_INTEL = process.env.DOWNLOAD_MAC_INTEL || '';
 const DOWNLOAD_WIN = process.env.DOWNLOAD_WIN || '';
+const AUDIENCE_ID = process.env.RESEND_AUDIENCE_ID || '';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -66,13 +68,27 @@ async function sendMail({ to, subject, html }) {
   return res.json();
 }
 
+/**
+ * Adresi Resend audience'ina yazar. Konteyner diski kalici olmadigi icin
+ * asil lead listesi burasidir; yerel dosya yalnizca yedektir.
+ */
+async function addToAudience(email) {
+  if (!RESEND_API_KEY || !AUDIENCE_ID) return { skipped: true };
+  const res = await fetch(`https://api.resend.com/audiences/${AUDIENCE_ID}/contacts`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, unsubscribed: false })
+  });
+  if (!res.ok && res.status !== 409) throw new Error(`Audience ${res.status}: ${await res.text()}`);
+  return res.json().catch(() => ({}));
+}
+
 function downloadEmailHtml() {
-  const mac = DOWNLOAD_MAC
-    ? `<a href="${DOWNLOAD_MAC}" style="display:inline-block;background:#5b8cff;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 8px 8px 0">macOS icin indir</a>`
-    : '';
-  const win = DOWNLOAD_WIN
-    ? `<a href="${DOWNLOAD_WIN}" style="display:inline-block;background:#232d3f;color:#e7edf8;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 8px 8px 0">Windows icin indir</a>`
-    : '';
+  const btn = (href, label, bg, fg) =>
+    href ? `<a href="${href}" style="display:inline-block;background:${bg};color:${fg};padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 8px 8px 0">${label}</a>` : '';
+  const mac = btn(DOWNLOAD_MAC, 'macOS (Apple Silicon)', '#ff3d57', '#fff')
+    + btn(DOWNLOAD_MAC_INTEL, 'macOS (Intel)', '#1b2130', '#e7edf8');
+  const win = btn(DOWNLOAD_WIN, 'Windows (x64)', '#1b2130', '#e7edf8');
 
   return `
   <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#1a1f2b;line-height:1.6">
@@ -147,6 +163,8 @@ async function handleLead(req, res) {
 
   let isNew = true;
   try { isNew = saveLead(entry); } catch (err) { console.error('lead yazilamadi', err); }
+
+  try { await addToAudience(email); } catch (err) { console.error('audience yazilamadi', err.message); }
 
   try {
     await sendMail({ to: email, subject: 'SubKill indirme baglantin', html: downloadEmailHtml() });

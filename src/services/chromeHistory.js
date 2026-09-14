@@ -95,7 +95,7 @@ async function readRows(dbPath) {
       db.close();
     }
   } catch (err) {
-    throw new Error('Tarayici gecmisi okunamadi. Chrome acikken dosya kilitli olabilir; tarayiciyi kapatip tekrar deneyin.');
+    throw new Error('Tarayıcı geçmişi okunamadı. Chrome açıkken dosya kilitli olabilir; tarayıcıyı kapatıp tekrar deneyin.');
   }
 }
 
@@ -114,7 +114,7 @@ function domainOfUrl(url) {
 async function collectUsage() {
   const paths = historyPaths();
   if (!paths.length) {
-    return { usage: {}, profiles: 0, rows: 0, note: 'Tarayici profili bulunamadi.' };
+    return { usage: {}, profiles: 0, rows: 0, note: 'Tarayıcı profili bulunamadı.' };
   }
 
   const usage = {};

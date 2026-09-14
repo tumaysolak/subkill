@@ -1,11 +1,11 @@
 'use strict';
 
 const CYCLES = {
-  weekly: { label: 'Haftalik', perMonth: 4.345 },
-  monthly: { label: 'Aylik', perMonth: 1 },
-  quarterly: { label: '3 Aylik', perMonth: 1 / 3 },
-  yearly: { label: 'Yillik', perMonth: 1 / 12 },
-  usage: { label: 'Kullanim bazli', perMonth: 1 },
+  weekly: { label: 'Haftalık', perMonth: 4.345 },
+  monthly: { label: 'Aylık', perMonth: 1 },
+  quarterly: { label: '3 Aylık', perMonth: 1 / 3 },
+  yearly: { label: 'Yıllık', perMonth: 1 / 12 },
+  usage: { label: 'Kullanım bazlı', perMonth: 1 },
   onetime: { label: 'Tek seferlik', perMonth: 0 }
 };
 

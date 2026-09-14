@@ -1,7 +1,7 @@
 {
   "name": "subkill",
   "productName": "SubKill",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Aboneliklerini yerel olarak takip et, gereksiz olanlari kes.",
   "main": "src/main.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "test": "node --test test/*.test.js",
     "dist:mac": "electron-builder --mac dmg",
     "dist:win": "electron-builder --win zip",
-    "dist:all": "electron-builder --mac dmg --win zip"
+    "dist:all": "electron-builder --mac dmg --win zip",
+    "test:e2e": "node test/e2e.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -19,23 +20,49 @@
   },
   "devDependencies": {
     "electron": "^38.1.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "playwright": "^1.49.0"
   },
   "build": {
     "appId": "com.subkill.app",
     "productName": "SubKill",
-    "directories": { "output": "dist", "buildResources": "assets" },
-    "files": ["src/**/*", "ui/**/*", "package.json", "!node_modules/sql.js/dist/sql-wasm*"],
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "ui/**/*",
+      "package.json",
+      "!node_modules/sql.js/dist/sql-wasm*"
+    ],
     "mac": {
       "category": "public.app-category.finance",
-      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
       "identity": null,
       "icon": "assets/icon.icns"
     },
     "win": {
-      "target": [{ "target": "zip", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.ico"
     },
-    "dmg": { "title": "SubKill" }
+    "dmg": {
+      "title": "SubKill"
+    }
   }
 }

@@ -4,24 +4,24 @@
 // Kategori cakisma tespitinde kullanilir (ayni kategoride birden fazla abonelik = potansiyel israf).
 
 const CATEGORIES = {
-  llm_chat: 'Yapay zeka sohbet aboneligi',
+  llm_chat: 'Yapay zeka sohbet aboneliği',
   llm_api: 'Yapay zeka API / token',
-  kod: 'Kodlama asistani',
-  video: 'Video uretimi',
+  kod: 'Kodlama asistanı',
+  video: 'Video üretimi',
   ses: 'Ses ve seslendirme',
-  gorsel: 'Gorsel ve tasarim',
+  gorsel: 'Görsel ve tasarım',
   otomasyon: 'Otomasyon',
   veri: 'Veri toplama / scraping',
-  eposta: 'E-posta altyapisi',
-  barindirma: 'Barindirma ve altyapi',
+  eposta: 'E-posta altyapısı',
+  barindirma: 'Barındırma ve altyapı',
   seo: 'SEO ve arama',
-  crm: 'CRM ve satis',
+  crm: 'CRM ve satış',
   verimlilik: 'Not ve verimlilik',
-  topluluk: 'Topluluk ve egitim',
-  reklam: 'Reklam harcamasi',
-  alanadi: 'Alan adi ve hosting',
+  topluluk: 'Topluluk ve eğitim',
+  reklam: 'Reklam harcaması',
+  alanadi: 'Alan adı ve hosting',
   depolama: 'Depolama ve bulut',
-  diger: 'Diger'
+  diger: 'Diğer'
 };
 
 const CATALOG = [

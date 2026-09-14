@@ -76,3 +76,42 @@ function wire(formId, noteId) {
 
 wire('leadForm', 'formNote');
 wire('leadForm2', 'formNote2');
+
+
+/* ---------- tanitim videosu: sessiz baslar, tiklayinca ses acilir ---------- */
+
+(function () {
+  const video = document.getElementById('tanitim');
+  const button = document.getElementById('soundToggle');
+  if (!video || !button) return;
+
+  const icon = document.getElementById('soundIcon');
+  const label = document.getElementById('soundLabel');
+
+  const sync = () => {
+    const on = !video.muted;
+    button.setAttribute('aria-pressed', String(on));
+    icon.textContent = on ? '\u{1F50A}' : '\u{1F507}';
+    label.textContent = on ? 'Sesi kapat' : 'Sesi aç';
+  };
+
+  button.addEventListener('click', () => {
+    video.muted = !video.muted;
+    if (!video.muted) {
+      video.loop = false;
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    }
+    sync();
+  });
+
+  // Ses acikken video bitince tekrar sessiz dongune don.
+  video.addEventListener('ended', () => {
+    video.muted = true;
+    video.loop = true;
+    video.play().catch(() => {});
+    sync();
+  });
+
+  sync();
+})();

@@ -2,6 +2,15 @@
 
 const api = window.subkill;
 
+// Testlerin ve hata ayiklamanin yakalayabilmesi icin sessiz hatalari topla.
+window.__subkillErrors = [];
+window.addEventListener('error', (e) => {
+  window.__subkillErrors.push(String((e.error && e.error.message) || e.message));
+});
+window.addEventListener('unhandledrejection', (e) => {
+  window.__subkillErrors.push(String((e.reason && e.reason.message) || e.reason));
+});
+
 let state = null;
 let currentView = 'panel';
 let scanResults = null;
@@ -9,12 +18,12 @@ let scanResults = null;
 /* ---------------- yardimcilar ---------------- */
 
 const CYCLE_LABELS = {
-  monthly: 'Aylik', yearly: 'Yillik', quarterly: '3 aylik',
-  weekly: 'Haftalik', usage: 'Kullanim', onetime: 'Tek seferlik'
+  monthly: 'Aylık', yearly: 'Yıllık', quarterly: '3 aylık',
+  weekly: 'Haftalık', usage: 'Kullanım', onetime: 'Tek seferlik'
 };
 
 const STATUS_LABELS = {
-  active: 'Aktif', trial: 'Deneme', cancelled: 'Iptal', paused: 'Duraklatildi'
+  active: 'Aktif', trial: 'Deneme', cancelled: 'İptal', paused: 'Duraklatıldı'
 };
 
 const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', TRY: '₺' };
@@ -130,10 +139,10 @@ function viewPanel() {
   const overlapMonthly = c.overlaps.reduce((a, o) => a + o.potentialMonthlySaving, 0);
 
   wrap.appendChild(el('div', { class: 'stats' }, [
-    stat('Aylik yuk', tl(c.summary.monthly), `${c.summary.count} aktif abonelik`),
-    stat('Yillik yuk', tl(c.summary.yearly), 'bugunku kurla'),
-    stat('Kullanilmayanlar', tl(dormantYearly), `${c.dormant.length} abonelik · yillik`, 'kill'),
-    stat('Cakisma tasarrufu', tl(overlapMonthly * 12), `${c.overlaps.length} kategoride · yillik`, 'good')
+    stat('Aylık yük', tl(c.summary.monthly), `${c.summary.count} aktif abonelik`),
+    stat('Yıllık yük', tl(c.summary.yearly), 'bugünkü kurla'),
+    stat('Kullanılmayanlar', tl(dormantYearly), `${c.dormant.length} abonelik · yillik`, 'kill'),
+    stat('Çakışma tasarrufu', tl(overlapMonthly * 12), `${c.overlaps.length} kategoride · yillik`, 'good')
   ]));
 
   // Uyarilar
@@ -142,7 +151,7 @@ function viewPanel() {
   ]);
   const body = el('div', { class: 'panel-body tight' });
   if (!c.alerts.length) {
-    body.appendChild(el('div', { class: 'empty', text: 'Uyari yok. Once Gmail taramasi yapip envanteri kurun.' }));
+    body.appendChild(el('div', { class: 'empty', text: 'Uyarı yok. Önce Gmail taraması yapıp envanteri kurun.' }));
   } else {
     for (const a of c.alerts.slice(0, 14)) {
       body.appendChild(el('div', { class: `alert ${a.level}` }, [
@@ -158,10 +167,10 @@ function viewPanel() {
   wrap.appendChild(alerts);
 
   // Yaklasan yenilemeler
-  const up = el('div', { class: 'panel' }, [el('h3', {}, ['Yaklasan yenilemeler', el('small', { text: '45 gun' })])]);
+  const up = el('div', { class: 'panel' }, [el('h3', {}, ['Yaklaşan yenilemeler', el('small', { text: '45 gün' })])]);
   const upBody = el('div', { class: 'panel-body tight' });
   if (!c.upcoming.length) {
-    upBody.appendChild(el('div', { class: 'empty', text: 'Yaklasan yenileme yok.' }));
+    upBody.appendChild(el('div', { class: 'empty', text: 'Yaklaşan yenileme yok.' }));
   } else {
     const t = el('table');
     t.appendChild(el('thead', {}, el('tr', {}, [
@@ -172,7 +181,7 @@ function viewPanel() {
     for (const u of c.upcoming.slice(0, 12)) {
       tb.appendChild(el('tr', {}, [
         el('td', {}, [el('div', { class: 'row-name', text: u.sub.name })]),
-        el('td', { text: `${shortDate(u.sub.nextRenewal)} · ${u.inDays} gun` }),
+        el('td', { text: `${shortDate(u.sub.nextRenewal)} · ${u.inDays} gün` }),
         el('td', { text: u.sub.cardLast4 || '—' }),
         el('td', { class: 'num', text: native(u.sub.amount, u.sub.currency) })
       ]));
@@ -185,7 +194,7 @@ function viewPanel() {
 
   // Cakismalar
   if (c.overlaps.length) {
-    const ov = el('div', { class: 'panel' }, [el('h3', {}, ['Birbirinin isini yapanlar'])]);
+    const ov = el('div', { class: 'panel' }, [el('h3', {}, ['Birbirinin işini yapanlar'])]);
     const ovBody = el('div', { class: 'panel-body tight' });
     for (const o of c.overlaps) {
       ovBody.appendChild(el('div', { class: 'alert bilgi' }, [
@@ -194,9 +203,9 @@ function viewPanel() {
           el('div', { class: 't', text: `${o.categoryLabel} — ${o.count} abonelik` }),
           el('div', {
             class: 'd',
-            text: o.items.map((i) => `${i.sub.name} (${tl(i.monthly)}/ay${i.idleDays !== null ? `, ${i.idleDays} gun once kullanildi` : ''})`).join('  ·  ')
+            text: o.items.map((i) => `${i.sub.name} (${tl(i.monthly)}/ay${i.idleDays !== null ? `, ${i.idleDays} gün önce kullanıldı` : ''})`).join('  ·  ')
           }),
-          el('div', { class: 'd', text: `Tek servise inersen yilda ${tl(o.potentialMonthlySaving * 12)} kalir.` })
+          el('div', { class: 'd', text: `Tek servise inersen yılda ${tl(o.potentialMonthlySaving * 12)} kalır.` })
         ])
       ]));
     }
@@ -230,14 +239,14 @@ function viewList() {
   const statusSel = el('select', {
     onchange: (e) => { listFilter.status = e.target.value; renderTable(); }
   }, [
-    el('option', { value: '', text: 'Tum durumlar' }),
+    el('option', { value: '', text: 'Tüm durumlar' }),
     ...Object.entries(STATUS_LABELS).map(([v, t]) => el('option', { value: v, text: t, selected: listFilter.status === v }))
   ]);
 
   const catSel = el('select', {
     onchange: (e) => { listFilter.category = e.target.value; renderTable(); }
   }, [
-    el('option', { value: '', text: 'Tum kategoriler' }),
+    el('option', { value: '', text: 'Tüm kategoriler' }),
     ...Object.entries(state.categories).map(([v, t]) => el('option', { value: v, text: t, selected: listFilter.category === v }))
   ]);
 
@@ -271,7 +280,7 @@ function renderTable() {
   if (!rows.length) {
     body.appendChild(el('div', {
       class: 'empty',
-      text: state.subscriptions.length ? 'Filtreye uyan kayit yok.' : 'Henuz abonelik yok. Tarama sekmesinden Gmail makbuzlarini tarayin.'
+      text: state.subscriptions.length ? 'Filtreye uyan kayıt yok.' : 'Henüz abonelik yok. Tarama sekmesinden Gmail makbuzlarını tarayın.'
     }));
     return;
   }
@@ -279,9 +288,9 @@ function renderTable() {
   const t = el('table');
   t.appendChild(el('thead', {}, el('tr', {}, [
     el('th', { text: 'Servis' }), el('th', { text: 'Periyot' }),
-    el('th', { class: 'num', text: 'Tutar' }), el('th', { class: 'num', text: 'Aylik (TL)' }),
+    el('th', { class: 'num', text: 'Tutar' }), el('th', { class: 'num', text: 'Aylık (TL)' }),
     el('th', { text: 'Yenileme' }), el('th', { text: 'Kart' }),
-    el('th', { text: 'Son kullanim' }), el('th', { text: 'Durum' })
+    el('th', { text: 'Son kullanım' }), el('th', { text: 'Durum' })
   ])));
 
   const tb = el('tbody');
@@ -303,7 +312,7 @@ function renderTable() {
       el('td', { text: s.cardLast4 || '—' }),
       el('td', {}, [idle === null
         ? el('span', { class: 'tag', text: 'bilinmiyor' })
-        : el('span', { class: `tag ${idle > (state.settings.dormantDays || 60) ? 'idle' : ''}`, text: `${idle} gun` })]),
+        : el('span', { class: `tag ${idle > (state.settings.dormantDays || 60) ? 'idle' : ''}`, text: `${idle} gün` })]),
       el('td', {}, [el('span', { class: `tag ${s.status}`, text: STATUS_LABELS[s.status] || s.status })])
     ]);
     tb.appendChild(tr);
@@ -336,7 +345,7 @@ function openSubForm(sub) {
   };
 
   const body = el('div', { class: 'form-grid' }, [
-    input('name', 'Servis adi', { full: true, placeholder: 'Anthropic Claude' }),
+    input('name', 'Servis adı', { full: true, placeholder: 'Anthropic Claude' }),
     input('plan', 'Plan', { placeholder: 'Max 20x' }),
     select('category', 'Kategori', Object.entries(state.categories)),
     input('amount', 'Tutar', { type: 'number', placeholder: '200' }),
@@ -344,30 +353,31 @@ function openSubForm(sub) {
     select('cycle', 'Periyot', Object.entries(CYCLE_LABELS)),
     select('status', 'Durum', Object.entries(STATUS_LABELS)),
     input('nextRenewal', 'Sonraki yenileme', { type: 'date' }),
-    input('trialEndsAt', 'Deneme bitisi', { type: 'date' }),
+    input('trialEndsAt', 'Deneme bitişi', { type: 'date' }),
     input('cardLast4', 'Kart son 4 hane', { placeholder: '2559' }),
     input('billingEmail', 'Fatura hangi adrese geliyor', { placeholder: 'ornek@gmail.com' }),
-    select('loginMethod', 'Giris yontemi', [
-      ['', 'Secilmedi'], ['google', 'Google ile giris'], ['apple', 'Apple ile giris'],
-      ['email', 'E-posta + sifre'], ['sso', 'Kurumsal SSO'], ['magic', 'E-posta linki']
+    select('loginMethod', 'Giriş yöntemi', [
+      ['', 'Seçilmedi'], ['google', 'Google ile giriş'], ['apple', 'Apple ile giriş'],
+      ['email', 'E-posta + şifre'], ['sso', 'Kurumsal SSO'], ['magic', 'E-posta linki']
     ]),
-    input('loginEmail', 'Giris adresi', { placeholder: 'hangi hesapla giriyorsun' }),
-    input('site', 'Alan adi', { placeholder: 'claude.ai' }),
-    input('lastUsedAt', 'Son kullanim', { type: 'date' }),
+    input('loginEmail', 'Giriş adresi', { placeholder: 'hangi hesapla giriyorsun' }),
+    input('site', 'Alan adı', { placeholder: 'claude.ai' }),
+    input('lastUsedAt', 'Son kullanım', { type: 'date' }),
     el('div', { class: 'field full' }, [
       el('label', { text: 'Not' }),
-      (f.notes = el('textarea', { rows: 2, placeholder: 'Sifre yazmayin. Sifre yoneticinizde hangi kayitla durdugunu yazabilirsiniz.' }))
+      (f.notes = el('textarea', { rows: 2, placeholder: 'Şifre yazmayın. Şifre yöneticinizde hangi kayıtla durduğunu yazabilirsiniz.' }))
     ]),
     el('div', { class: 'field full' }, [
-      el('div', { class: 'hint', text: 'SubKill parola saklamaz. Burada yalnizca hangi hesapla giris yaptiginiz tutulur.' })
+      el('div', { class: 'hint', text: 'SubKill parola saklamaz. Burada yalnızca hangi hesapla giriş yaptığınız tutulur.' })
     ])
   ]);
   f.notes.value = s.notes || '';
 
   const save = async () => {
-    const payload = { id: s.id };
+    const payload = {};
+    if (s.id) payload.id = s.id;
     for (const [k, node] of Object.entries(f)) payload[k] = node.value.trim ? node.value.trim() : node.value;
-    if (!payload.name) { toast('Servis adi gerekli.', 'err'); return; }
+    if (!payload.name) { toast('Servis adı gerekli.', 'err'); return; }
     payload.amount = Number(payload.amount) || 0;
     await refresh(await api.upsertSubscription(payload));
     closeModal();
@@ -384,7 +394,7 @@ function openSubForm(sub) {
         toast('Silindi.');
       }
     }) : null,
-    el('button', { class: 'ghost', text: 'Vazgec', onclick: closeModal }),
+    el('button', { class: 'ghost', text: 'Vazgeç', onclick: closeModal }),
     el('button', { class: 'primary', text: 'Kaydet', onclick: save })
   ].filter(Boolean);
 
@@ -400,12 +410,12 @@ function viewCalendar() {
   const avg = cal.reduce((a, c) => a + c.total, 0) / (cal.length || 1);
 
   wrap.appendChild(el('div', { class: 'stats' }, [
-    stat('12 aylik toplam', tl(cal.reduce((a, c) => a + c.total, 0)), 'onumuzdeki bir yil'),
-    stat('Ortalama ay', tl(avg), 'aylik ortalama yuk'),
-    stat('En agir ay', tl(max), monthLabel(cal.find((c) => c.total === max).month), 'kill')
+    stat('12 aylık toplam', tl(cal.reduce((a, c) => a + c.total, 0)), 'önümüzdeki bir yıl'),
+    stat('Ortalama ay', tl(avg), 'aylık ortalama yük'),
+    stat('En ağır ay', tl(max), monthLabel(cal.find((c) => c.total === max).month), 'kill')
   ]));
 
-  const panel = el('div', { class: 'panel' }, [el('h3', {}, ['Aylik dagilim', el('small', { text: 'yillik yenilemeler dustugu ayda gorunur' })])]);
+  const panel = el('div', { class: 'panel' }, [el('h3', {}, ['Aylık dağılım', el('small', { text: 'yıllık yenilemeler düştüğü ayda görünür' })])]);
   const body = el('div', { class: 'panel-body' });
   const bars = el('div', { class: 'bars' });
 
@@ -435,12 +445,12 @@ function viewCards() {
   const cards = state.cards.slice();
 
   const panel = el('div', { class: 'panel' }, [
-    el('h3', {}, ['Bu ayki kart yuku', el('small', { text: 'limit tanimlayinca asim uyarisi verir' })])
+    el('h3', {}, ['Bu ayki kart yükü', el('small', { text: 'limit tanımlayınca aşım uyarısı verir' })])
   ]);
   const body = el('div', { class: 'panel-body tight' });
 
   if (!loads.length) {
-    body.appendChild(el('div', { class: 'empty', text: 'Henuz kart bilgisi yok.' }));
+    body.appendChild(el('div', { class: 'empty', text: 'Henüz kart bilgisi yok.' }));
   } else {
     const t = el('table');
     t.appendChild(el('thead', {}, el('tr', {}, [
@@ -457,7 +467,7 @@ function viewCards() {
         el('td', { class: 'num', text: c.limit ? tl(c.limit) : '—' }),
         el('td', {}, [el('span', {
           class: `tag ${c.over ? 'idle' : c.warning ? 'trial' : 'active'}`,
-          text: c.over ? 'Limit asiliyor' : c.warning ? `%${Math.round(c.usageRatio * 100)}` : 'Rahat'
+          text: c.over ? 'Limit aşılıyor' : c.warning ? `%${Math.round(c.usageRatio * 100)}` : 'Rahat'
         })]),
         el('td', { class: 'num', text: String(c.items.length) })
       ]));
@@ -469,7 +479,7 @@ function viewCards() {
   wrap.appendChild(panel);
 
   // Kart tanimlari
-  const edit = el('div', { class: 'panel' }, [el('h3', {}, ['Kart tanimlari ve limitler'])]);
+  const edit = el('div', { class: 'panel' }, [el('h3', {}, ['Kart tanımları ve limitler'])]);
   const editBody = el('div', { class: 'panel-body' });
   const list = el('div');
 
@@ -478,8 +488,8 @@ function viewCards() {
     cards.forEach((c, i) => {
       list.appendChild(el('div', { class: 'filters' }, [
         el('input', { type: 'text', value: c.last4 || '', placeholder: 'Son 4 hane', oninput: (e) => { cards[i].last4 = e.target.value.trim(); } }),
-        el('input', { type: 'text', class: 'grow', value: c.label || '', placeholder: 'Etiket (ana kart, is karti...)', oninput: (e) => { cards[i].label = e.target.value; } }),
-        el('input', { type: 'number', value: c.monthlyLimit || '', placeholder: 'Aylik limit (TL)', oninput: (e) => { cards[i].monthlyLimit = Number(e.target.value) || 0; } }),
+        el('input', { type: 'text', class: 'grow', value: c.label || '', placeholder: 'Etiket (ana kart, iş kartı...)', oninput: (e) => { cards[i].label = e.target.value; } }),
+        el('input', { type: 'number', value: c.monthlyLimit || '', placeholder: 'Aylık limit (TL)', oninput: (e) => { cards[i].monthlyLimit = Number(e.target.value) || 0; } }),
         el('button', { class: 'danger small', text: 'Sil', onclick: () => { cards.splice(i, 1); drawRows(); } })
       ]));
     });
@@ -510,33 +520,33 @@ function viewScan() {
   const wrap = document.createDocumentFragment();
 
   const userInput = el('input', { type: 'text', class: 'grow', value: state.settings.gmailUser || '', placeholder: 'ornek@gmail.com' });
-  const passInput = el('input', { type: 'password', class: 'grow', placeholder: 'Google uygulama sifresi (16 hane)' });
+  const passInput = el('input', { type: 'password', class: 'grow', placeholder: 'Google uygulama şifresi (16 hane)' });
 
-  const gmailPanel = el('div', { class: 'panel' }, [el('h3', {}, ['Gmail makbuz taramasi'])]);
+  const gmailPanel = el('div', { class: 'panel' }, [el('h3', {}, ['Gmail makbuz taraması'])]);
   const gBody = el('div', { class: 'panel-body' }, [
     el('div', { class: 'form-grid' }, [
       el('div', { class: 'field' }, [el('label', { text: 'Gmail adresi' }), userInput]),
-      el('div', { class: 'field' }, [el('label', { text: 'Uygulama sifresi' }), passInput]),
+      el('div', { class: 'field' }, [el('label', { text: 'Uygulama şifresi' }), passInput]),
       el('div', { class: 'field full' }, [
         el('div', { class: 'hint' }, [
-          'Hesap parolaniz degil, Google hesabinizdan uretilen 16 haneli uygulama sifresi gerekir. ',
+          'Hesap parolanız değil, Google hesabınızdan üretilen 16 haneli uygulama şifresi gerekir. ',
           el('a', { text: 'myaccount.google.com/apppasswords', onclick: () => api.openExternal('https://myaccount.google.com/apppasswords') }),
-          ' adresinden uretebilirsiniz. Sifre isletim sisteminin guvenli kasasinda saklanir, veri dosyasina yazilmaz.'
+          ' adresinden üretebilirsiniz. Şifre işletim sisteminin güvenli kasasında saklanır, veri dosyasına yazılmaz.'
         ])
       ])
     ]),
     el('div', { class: 'filters' }, [
       el('button', {
         class: 'ghost',
-        text: 'Baglantiyi test et',
+        text: 'Bağlantıyı test et',
         onclick: async (e) => {
           e.target.disabled = true;
           const r = await api.gmailTest({ user: userInput.value.trim(), appPassword: passInput.value.trim() });
           e.target.disabled = false;
-          toast(r.ok ? 'Baglanti basarili.' : r.error, r.ok ? 'ok' : 'err');
+          toast(r.ok ? 'Bağlantı başarılı.' : r.error, r.ok ? 'ok' : 'err');
         }
       }),
-      el('button', { class: 'primary', text: 'Makbuzlari tara', id: 'btnScan', onclick: startScan })
+      el('button', { class: 'primary', text: 'Makbuzları tara', id: 'btnScan', onclick: startScan })
     ]),
     el('div', { class: 'progress', id: 'scanProgress', hidden: true }, [el('div')])
   ]);
@@ -546,7 +556,7 @@ function viewScan() {
   async function startScan(e) {
     const btn = e.target;
     btn.disabled = true;
-    btn.textContent = 'Taraniyor...';
+    btn.textContent = 'Taranıyor...';
     document.getElementById('scanProgress').hidden = false;
 
     const stop = api.onProgress((p) => {
@@ -557,12 +567,12 @@ function viewScan() {
     const r = await api.gmailScan({ user: userInput.value.trim(), appPassword: passInput.value.trim() });
     stop();
     btn.disabled = false;
-    btn.textContent = 'Makbuzlari tara';
+    btn.textContent = 'Makbuzları tara';
     document.getElementById('scanProgress').hidden = true;
 
     if (!r.ok) { toast(r.error, 'err'); return; }
     scanResults = r.records;
-    toast(`${r.scanned} mail tarandi, ${r.records.length} servis bulundu.`, 'ok');
+    toast(`${r.scanned} mail tarandı, ${r.records.length} servis bulundu.`, 'ok');
     render();
   }
 
@@ -585,7 +595,7 @@ function viewScan() {
         ]),
         el('div', { class: 'meta' }, [
           el('div', { text: `${native(rec.amount, rec.currency)} · ${CYCLE_LABELS[rec.cycle] || rec.cycle}` }),
-          el('div', { text: `${rec.cardLast4 ? `kart ${rec.cardLast4} · ` : ''}${known ? 'mevcut kayit guncellenir' : 'yeni'}` })
+          el('div', { text: `${rec.cardLast4 ? `kart ${rec.cardLast4} · ` : ''}${known ? 'mevcut kayıt güncellenir' : 'yeni'}` })
         ])
       ]));
     }
@@ -593,16 +603,16 @@ function viewScan() {
     resBody.appendChild(el('div', { class: 'filters', style: 'padding:12px' }, [
       el('button', {
         class: 'primary',
-        text: 'Secilenleri envantere ekle',
+        text: 'Seçilenleri envantere ekle',
         onclick: async () => {
           const picked = checks.filter((c) => c.cb.checked).map((c) => c.rec);
           const r = await api.gmailApply(picked);
           scanResults = null;
           await refresh(r.state);
-          toast(`${r.result.added} yeni, ${r.result.updated} guncellendi.`, 'ok');
+          toast(`${r.result.added} yeni, ${r.result.updated} güncellendi.`, 'ok');
         }
       }),
-      el('button', { class: 'ghost', text: 'Sonuclari temizle', onclick: () => { scanResults = null; render(); } })
+      el('button', { class: 'ghost', text: 'Sonuçları temizle', onclick: () => { scanResults = null; render(); } })
     ]));
 
     resPanel.appendChild(resBody);
@@ -610,22 +620,22 @@ function viewScan() {
   }
 
   // CSV
-  const csv = el('div', { class: 'panel' }, [el('h3', {}, ['Tablo ile calis'])]);
+  const csv = el('div', { class: 'panel' }, [el('h3', {}, ['Tablo ile çalış'])]);
   csv.appendChild(el('div', { class: 'panel-body' }, [
-    el('div', { class: 'hint', text: 'Mevcut Excel/CSV listenizi iceri aktarabilir, envanteri disari aktarip tabloda calisabilirsiniz. Ayni isimli servisler guncellenir, yenileri eklenir.' }),
+    el('div', { class: 'hint', text: 'Mevcut Excel/CSV listenizi içeri aktarabilir, envanteri dışarı aktarıp tabloda çalışabilirsiniz. Aynı isimli servisler güncellenir, yenileri eklenir.' }),
     el('div', { class: 'filters', style: 'margin-top:12px' }, [
       el('button', {
         class: 'ghost',
-        text: 'CSV iceri aktar',
+        text: 'CSV içeri aktar',
         onclick: async () => {
           const r = await api.importCsv();
-          if (r.ok) { await refresh(r.state); toast(`${r.result.added} yeni, ${r.result.updated} guncellendi.`, 'ok'); }
+          if (r.ok) { await refresh(r.state); toast(`${r.result.added} yeni, ${r.result.updated} güncellendi.`, 'ok'); }
           else if (r.error) toast(r.error, 'err');
         }
       }),
       el('button', {
         class: 'ghost',
-        text: 'CSV disari aktar',
+        text: 'CSV dışarı aktar',
         onclick: async () => {
           const r = await api.exportCsv();
           if (r.ok) toast('CSV kaydedildi.', 'ok');
@@ -650,11 +660,11 @@ function viewSettings() {
   const eur = el('input', { type: 'number', value: s.rates.EUR, step: '0.01' });
   const gbp = el('input', { type: 'number', value: s.rates.GBP, step: '0.01' });
 
-  const panel = el('div', { class: 'panel' }, [el('h3', {}, ['Esikler ve kurlar'])]);
+  const panel = el('div', { class: 'panel' }, [el('h3', {}, ['Eşikler ve kurlar'])]);
   panel.appendChild(el('div', { class: 'panel-body' }, [
     el('div', { class: 'form-grid' }, [
-      el('div', { class: 'field' }, [el('label', { text: 'Kullanilmadi sayilma esigi (gun)' }), dormant]),
-      el('div', { class: 'field' }, [el('label', { text: 'Gmail geriye donuk tarama (gun)' }), lookback]),
+      el('div', { class: 'field' }, [el('label', { text: 'Kullanılmadı sayılma eşiği (gün)' }), dormant]),
+      el('div', { class: 'field' }, [el('label', { text: 'Gmail geriye dönük tarama (gün)' }), lookback]),
       el('div', { class: 'field' }, [el('label', { text: 'USD/TRY' }), usd]),
       el('div', { class: 'field' }, [el('label', { text: 'EUR/TRY' }), eur]),
       el('div', { class: 'field' }, [el('label', { text: 'GBP/TRY' }), gbp])
@@ -672,14 +682,14 @@ function viewSettings() {
           toast('Ayarlar kaydedildi.', 'ok');
         }
       }),
-      el('button', { class: 'ghost', text: 'TCMB kurunu cek', onclick: refreshRates })
+      el('button', { class: 'ghost', text: 'TCMB kurunu çek', onclick: refreshRates })
     ])
   ]));
   wrap.appendChild(panel);
 
   const data = el('div', { class: 'panel' }, [el('h3', {}, ['Veri'])]);
-  const pathLine = el('div', { class: 'hint', text: 'Veri dosyasi yukleniyor...' });
-  api.dataPath().then((p) => { pathLine.textContent = `Tum veriler bu dosyada, bilgisayarinizda: ${p}`; });
+  const pathLine = el('div', { class: 'hint', text: 'Veri dosyası yükleniyor...' });
+  api.dataPath().then((p) => { pathLine.textContent = `Tüm veriler bu dosyada, bilgisayarınızda: ${p}`; });
 
   data.appendChild(el('div', { class: 'panel-body' }, [
     pathLine,
@@ -687,15 +697,15 @@ function viewSettings() {
       el('button', { class: 'ghost', text: 'Yedek al (JSON)', onclick: async () => { const r = await api.exportData(); if (r.ok) toast('Yedek kaydedildi.', 'ok'); } }),
       el('button', {
         class: 'ghost',
-        text: 'Yedekten yukle',
+        text: 'Yedekten yükle',
         onclick: async () => {
           const r = await api.importData();
-          if (r.ok) { await refresh(r.state); toast('Veri yuklendi.', 'ok'); }
+          if (r.ok) { await refresh(r.state); toast('Veri yüklendi.', 'ok'); }
           else if (r.error) toast(r.error, 'err');
         }
       })
     ]),
-    el('div', { class: 'hint', style: 'margin-top:12px', text: 'Yedek dosyasini iCloud Drive veya OneDrive klasorune koyarsaniz baska bir bilgisayarda ayni envanteri acabilirsiniz. SubKill hicbir veriyi internete gondermez.' })
+    el('div', { class: 'hint', style: 'margin-top:12px', text: 'Yedek dosyasını iCloud Drive veya OneDrive klasörüne koyarsanız başka bir bilgisayarda aynı envanteri açabilirsiniz. SubKill hiçbir veriyi internete göndermez.' })
   ]));
   wrap.appendChild(data);
 
@@ -704,7 +714,7 @@ function viewSettings() {
 
 async function refreshRates() {
   const r = await api.refreshRates();
-  if (r.ok) { await refresh(r.state); toast(`Kur guncellendi: 1$ = ${Number(r.rates.USD).toFixed(2)} ₺`, 'ok'); }
+  if (r.ok) { await refresh(r.state); toast(`Kur güncellendi: 1$ = ${Number(r.rates.USD).toFixed(2)} ₺`, 'ok'); }
   else toast(r.error, 'err');
 }
 
@@ -720,13 +730,13 @@ document.getElementById('btnRates').addEventListener('click', refreshRates);
 
 document.getElementById('btnUsage').addEventListener('click', async (e) => {
   e.target.disabled = true;
-  e.target.textContent = 'Taraniyor...';
+  e.target.textContent = 'Taranıyor...';
   const r = await api.scanUsage();
   e.target.disabled = false;
-  e.target.textContent = 'Kullanimi tara';
+  e.target.textContent = 'Kullanımı tara';
   if (!r.ok) { toast(r.error, 'err'); return; }
   await refresh(r.state);
-  toast(`${r.profiles} tarayici profili okundu, ${r.matched} abonelikte son kullanim guncellendi.`, 'ok');
+  toast(`${r.profiles} tarayıcı profili okundu, ${r.matched} abonelikte son kullanım güncellendi.`, 'ok');
 });
 
 document.getElementById('modalBackdrop').addEventListener('click', (e) => {

@@ -14,7 +14,7 @@ const GMAIL_QUERY_TERMS = [
  * hesap parolasi calismaz ve istenmez.
  */
 async function connect({ user, appPassword }) {
-  if (!user || !appPassword) throw new Error('Gmail adresi ve uygulama sifresi gerekli.');
+  if (!user || !appPassword) throw new Error('Gmail adresi ve uygulama şifresi gerekli.');
   const client = new ImapFlow({
     host: 'imap.gmail.com',
     port: 993,

@@ -84,12 +84,14 @@ class Store {
         return d.subscriptions[i];
       }
     }
+    // Onemli: yayilmis alanlar once gelmeli. Aksi halde cagiran taraftan gelen
+    // "id: undefined" uretilen kimligi ezer ve kayit duzenlenemez/silinemez hale gelir.
     const created = {
+      ...sub,
       id: sub.id || newId(),
+      status: sub.status || 'active',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'active',
-      ...sub
+      updatedAt: new Date().toISOString()
     };
     d.subscriptions.push(created);
     this.save();

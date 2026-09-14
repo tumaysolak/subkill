@@ -15,6 +15,10 @@
 
 * { box-sizing: border-box; }
 
+/* display:flex/grid tanimli elemanlarda hidden nitelik ezilir; hep gecerli olsun.
+   Aksi halde gizli modal arka plani tum ekrani kaplayip tiklamalari yutuyor. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;

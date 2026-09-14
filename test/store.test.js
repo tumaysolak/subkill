@@ -34,6 +34,16 @@ test('store: kayit ekler, gunceller, siler', () => {
   fs.unlinkSync(file);
 });
 
+test('id: undefined gonderilse bile kayda kimlik atanir', () => {
+  const { store, file } = tmpStore();
+  // Arayuz, yeni kayitta payload'a id: undefined koyabiliyordu; kimlik kaybolmamali
+  const created = store.upsertSubscription({ id: undefined, name: 'Kimliksiz', amount: 5, currency: 'USD', cycle: 'monthly' });
+  assert.ok(created.id, 'kimlik uretilmedi');
+  assert.strictEqual(store.listSubscriptions()[0].id, created.id);
+  assert.strictEqual(store.removeSubscription(created.id), true, 'kayit silinemedi');
+  fs.unlinkSync(file);
+});
+
 test('mergeScanned: elle girilen alanlar tarama ile ezilmez', () => {
   const { store, file } = tmpStore();
   store.upsertSubscription({

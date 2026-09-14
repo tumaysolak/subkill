@@ -1,0 +1,11 @@
+{
+  "name": "subkill-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SubKill landing sayfasi ve e-posta toplama ucu",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=20" }
+}

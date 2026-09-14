@@ -1,0 +1,89 @@
+# SubKill — Urun Spesifikasyonu
+
+## Problem
+Kullanici onlarca yapay zeka ve SaaS aboneligine sahip. Hangi servise ne zaman uye
+oldugunu, yenilemenin ne zaman geldigini, hangi karttan cektigini, faturanin hangi
+posta kutusuna dustugunu takip edemiyor. Sonuc: unutulan yenilemeler, ayni isi yapan
+iki abonelik, aylardir girilmemis ama odenmeye devam eden hesaplar ve beklenmedik
+anlarda dolan kart limitleri.
+
+## Cozum
+Tamamen yerel calisan bir masaustu uygulamasi. Veri kullanicinin makinesinde durur,
+hicbir sunucuya gitmez. Uygulama posta kutusundaki makbuzlari ve tarayici gecmisini
+okuyarak envanteri kendisi kurar, sonra uc soruyu cevaplar:
+
+1. Bu ay ve bu yil ne odeyecegim, hangi karttan?
+2. Hangi aboneligim bir digerinin ayni isini yapiyor?
+3. Hangi aboneligime aylardir girmedim?
+
+## Kapsam disinda (bilincli kararlar)
+- Sifre saklamak. Uygulama sadece **giris yontemini** tutar (hangi e-posta, Google ile
+  giris mi, sifre yoneticisinde mi). Parolanin kendisi asla girilmez.
+- Bulut senkronu. v1 tek makinede calisir; veri dosyasi kullanicinin kendi
+  iCloud/Drive klasorune tasinabilir.
+- Banka entegrasyonu. Kart ekstresi CSV olarak elle aktarilir.
+
+## Veri modeli
+
+### Subscription
+| alan | tip | aciklama |
+|---|---|---|
+| id | string | uuid |
+| name | string | servis adi (Anthropic Claude) |
+| plan | string | plan adi (Max 20x) |
+| amount | number | tutar |
+| currency | string | USD / EUR / TRY / GBP |
+| cycle | string | monthly / yearly / quarterly / weekly / usage / onetime |
+| nextRenewal | ISO date | bir sonraki yenileme |
+| lastCharge | ISO date | son gorulen odeme |
+| cardLast4 | string | kart son dort hane |
+| billingEmail | string | faturanin dustugu adres |
+| loginMethod | string | google / email / sso / apple / password-manager |
+| loginEmail | string | giris icin kullanilan adres (sifre degil) |
+| category | string | catalog kategorisi |
+| site | string | servis alan adi (kullanim tespiti icin) |
+| lastUsedAt | ISO date | tarayici gecmisinden veya elle |
+| status | string | active / trial / cancelled / paused |
+| trialEndsAt | ISO date | deneme bitisi |
+| source | string | gmail / manual / csv |
+| notes | string | |
+
+### Card
+| alan | tip |
+|---|---|
+| last4 | string |
+| label | string |
+| monthlyLimit | number (TRY) |
+
+### Settings
+currency base (TRY), fx rates, gmail hesabi, uyari esikleri.
+
+## Motor kurallari
+
+**Aylik normalizasyon**: yearly/12, quarterly/3, weekly*4.345, usage son 3 ayin
+ortalamasi, onetime 0.
+
+**Cakisma tespiti**: ayni `category` altinda 2+ `active` abonelik varsa uyari uretilir.
+Tasarruf tahmini = en pahali olan haric kalanlarin aylik toplami degil, **en ucuz
+olan haric** kalanlarin toplami degildir — kullanici hangisini tutacagina kendi karar
+verir, uygulama sadece aylik yuku ve son kullanim tarihlerini yan yana koyar.
+
+**Olu abonelik**: `lastUsedAt` > 60 gun once VEYA hic kayit yok VE status=active
+→ "iptal aday". 90 gunu gecen "yuksek oncelik".
+
+**Kart yuku**: her kart icin ilgili ayda dusecek tutarlarin toplami. `monthlyLimit`
+tanimliysa ve toplam limitin %80'ini asiyorsa uyari.
+
+**Deneme bitisi**: trialEndsAt 7 gun icindeyse kirmizi uyari (unutulup ucrete donmesin).
+
+## Gmail ayristirma
+IMAP + Google uygulama sifresi. Konu/gonderen filtresi ile makbuz adaylarini toplar,
+her mailden: gonderen alan adi → katalog eslesmesi → servis adi + kategori + site,
+gövdeden tutar + para birimi + periyot + kart son 4 + deneme bitisi.
+Ayni servisin birden fazla makbuzu varsa en yenisi kayda islenir, eskisi gecmis olur.
+Odeme aracilari (Stripe, Paddle, PayPal) servis adi olarak kabul edilmez; bu
+maillerde servis adi konu satirindan ve govde basliklarindan cikarilir.
+
+## Landing (getsubkill.com)
+Statik sayfa + tek POST ucu. Ziyaretci e-posta birakir, Resend ile indirme linki
+gonderilir, adres yerel listeye yazilir. Railway uzerinde calisir.

@@ -1,7 +1,7 @@
 {
   "name": "subkill",
   "productName": "SubKill",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Aboneliklerini yerel olarak takip et, gereksiz olanlari kes.",
   "main": "src/main.js",
   "scripts": {
@@ -34,7 +34,8 @@
       "src/**/*",
       "ui/**/*",
       "package.json",
-      "!node_modules/sql.js/dist/sql-wasm*"
+      "!node_modules/sql.js/dist/sql-wasm*",
+      "!build/**/*"
     ],
     "mac": {
       "category": "public.app-category.finance",
@@ -55,7 +56,8 @@
         {
           "target": "zip",
           "arch": [
-            "x64"
+            "x64",
+            "arm64"
           ]
         }
       ],
@@ -63,6 +65,7 @@
     },
     "dmg": {
       "title": "SubKill"
-    }
+    },
+    "afterPack": "build/afterPack.js"
   }
 }

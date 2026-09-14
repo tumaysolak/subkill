@@ -299,13 +299,19 @@ function serveStatic(req, res) {
     if (err) {
       fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (e2, fallback) => {
         if (e2) { res.writeHead(404); res.end('Bulunamadi'); return; }
-        res.writeHead(200, { 'Content-Type': MIME['.html'] });
+        res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache, must-revalidate' });
         res.end(fallback);
       });
       return;
     }
-    const type = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'public, max-age=3600' });
+    const ext = path.extname(file).toLowerCase();
+    const type = MIME[ext] || 'application/octet-stream';
+    // HTML onbellege alinmamali: sayfa yeni bir medya dosyasina gectiginde
+    // ziyaretci hala eski surumu gosteren HTML'i tutuyordu.
+    const cache = ext === '.html'
+      ? 'no-cache, must-revalidate'
+      : 'public, max-age=86400';
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cache });
     res.end(buf);
   });
 }

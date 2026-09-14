@@ -21,6 +21,7 @@ const NOTIFY_TO = process.env.NOTIFY_TO || '';
 const DOWNLOAD_MAC = process.env.DOWNLOAD_MAC || '';
 const DOWNLOAD_MAC_INTEL = process.env.DOWNLOAD_MAC_INTEL || '';
 const DOWNLOAD_WIN = process.env.DOWNLOAD_WIN || '';
+const DOWNLOAD_WIN_ARM = process.env.DOWNLOAD_WIN_ARM || '';
 const AUDIENCE_ID = process.env.RESEND_AUDIENCE_ID || '';
 const SITE_URL = process.env.SITE_URL || 'https://getsubkill.com';
 // Cikis baglantisini imzalamak icin. Ayri bir sir tanimlanmazsa API anahtarindan turetilir.
@@ -131,9 +132,9 @@ async function unsubscribeFromAudience(email) {
 function downloadEmailHtml(email) {
   const btn = (href, label, bg, fg) =>
     href ? `<a href="${href}" style="display:inline-block;background:${bg};color:${fg};padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 8px 8px 0">${label}</a>` : '';
-  const mac = btn(DOWNLOAD_MAC, 'macOS (Apple Silicon)', '#ff3d57', '#fff')
-    + btn(DOWNLOAD_MAC_INTEL, 'macOS (Intel)', '#1b2130', '#e7edf8');
-  const win = btn(DOWNLOAD_WIN, 'Windows (x64)', '#1b2130', '#e7edf8');
+  const mac = btn(`${SITE_URL}/indir/mac`, 'macOS (Apple Silicon)', '#ff3d57', '#fff')
+    + btn(`${SITE_URL}/indir/mac-intel`, 'macOS (Intel)', '#1b2130', '#e7edf8');
+  const win = btn(`${SITE_URL}/indir/windows`, 'Windows (x64)', '#1b2130', '#e7edf8');
 
   return `
   <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#1a1f2b;line-height:1.6">
@@ -164,9 +165,9 @@ function downloadEmailHtml(email) {
 function downloadEmailText(email) {
   const lines = ['SubKill hazır.', '',
     'Kurulum dosyası aşağıda. Uygulama tamamen bilgisayarında çalışır, hiçbir veri bize gelmez.', ''];
-  if (DOWNLOAD_MAC) lines.push(`macOS (Apple Silicon): ${DOWNLOAD_MAC}`);
-  if (DOWNLOAD_MAC_INTEL) lines.push(`macOS (Intel): ${DOWNLOAD_MAC_INTEL}`);
-  if (DOWNLOAD_WIN) lines.push(`Windows (x64): ${DOWNLOAD_WIN}`);
+  lines.push(`macOS (Apple Silicon): ${SITE_URL}/indir/mac`);
+  lines.push(`macOS (Intel): ${SITE_URL}/indir/mac-intel`);
+  lines.push(`Windows (x64): ${SITE_URL}/indir/windows`);
   lines.push('', 'İlk açılış',
     'SubKill imzasız olduğu için işletim sistemi bir kez uyarı gösterir.',
     'macOS: simgeye sağ tıkla ve "Aç" de, çıkan pencerede yine "Aç"ı seç.',
@@ -312,6 +313,29 @@ async function handleUnsub(req, res) {
   res.end(unsubPage(title, body));
 }
 
+/**
+ * Indirme yonlendirmeleri.
+ *
+ * Neden: baglantilar dogrudan GitHub surum adresini gosterdiginde, surum
+ * tarafinda bir sorun ciktigi anda hem sitedeki hem daha once gonderilmis
+ * postalardaki baglantilar kiriliyor. Kendi alan adimizdan yonlendirince
+ * hedef tek yerden degistirilebiliyor; ayrica posta tarayicilar baglantiyi
+ * kendi alan adimizda gorunce daha az supheleniyor.
+ */
+const DOWNLOADS = {
+  '/indir/mac': () => DOWNLOAD_MAC,
+  '/indir/mac-intel': () => DOWNLOAD_MAC_INTEL,
+  '/indir/windows': () => DOWNLOAD_WIN,
+  '/indir/windows-arm': () => DOWNLOAD_WIN_ARM
+};
+const RELEASES_URL = 'https://github.com/tumaysolak/subkill/releases/latest';
+
+function handleDownload(req, res, key) {
+  const target = DOWNLOADS[key]() || RELEASES_URL;
+  res.writeHead(302, { Location: target, 'Cache-Control': 'no-cache' });
+  res.end();
+}
+
 function serveStatic(req, res) {
   const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
   const rel = urlPath === '/' ? 'index.html' : urlPath.replace(/^\/+/, '');
@@ -374,6 +398,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/api/lead') return handleLead(req, res);
   if (req.url === '/healthz') return json(res, 200, { ok: true });
   if ((req.url || '').startsWith('/cikis')) return handleUnsub(req, res);
+  const dlKey = (req.url || '').split('?')[0];
+  if (Object.prototype.hasOwnProperty.call(DOWNLOADS, dlKey)) return handleDownload(req, res, dlKey);
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); res.end(); return; }
   return serveStatic(req, res);
 });

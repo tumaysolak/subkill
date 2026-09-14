@@ -32,10 +32,23 @@ const MIME = {
   '.js': 'text/javascript; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
   '.ico': 'image/x-icon',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.webmanifest': 'application/manifest+json'
 };
+
+// Tarayicinin kismi istekle (Range) cekebilecegi turler. Safari, Range
+// yanitlamayan bir sunucudan videoyu hic oynatmiyor; Chrome oynatiyor ama
+// ileri sarma calismiyor.
+const RANGEABLE = new Set(['.mp4', '.webm']);
 
 /* ---------- lead deposu ---------- */
 
@@ -127,6 +140,12 @@ function downloadEmailHtml(email) {
     <h2 style="margin:0 0 6px">SubKill hazır.</h2>
     <p style="margin:0 0 18px;color:#5a6478">Kurulum dosyası aşağıda. Uygulama tamamen bilgisayarında çalışır, hiçbir veri bize gelmez.</p>
     <p style="margin:0 0 20px">${mac}${win}</p>
+    <p style="margin:0 0 6px"><strong>İlk açılış</strong></p>
+    <p style="margin:0 0 18px;color:#5a6478;font-size:14.5px">
+      SubKill imzasız olduğu için işletim sistemi bir kez uyarı gösterir.
+      <strong>macOS:</strong> simgeye sağ tıkla ve "Aç" de, çıkan pencerede yine "Aç"ı seç.
+      <strong>Windows:</strong> SmartScreen uyarısında "Ek bilgi" &rarr; "Yine de çalıştır".
+    </p>
     <p style="margin:0 0 10px"><strong>İlk üç adım</strong></p>
     <ol style="margin:0 0 20px;padding-left:18px;color:#3a4356">
       <li>Gmail sekmesinden uygulama şifreni gir ve makbuzları tara.</li>
@@ -148,7 +167,11 @@ function downloadEmailText(email) {
   if (DOWNLOAD_MAC) lines.push(`macOS (Apple Silicon): ${DOWNLOAD_MAC}`);
   if (DOWNLOAD_MAC_INTEL) lines.push(`macOS (Intel): ${DOWNLOAD_MAC_INTEL}`);
   if (DOWNLOAD_WIN) lines.push(`Windows (x64): ${DOWNLOAD_WIN}`);
-  lines.push('', 'İlk üç adım',
+  lines.push('', 'İlk açılış',
+    'SubKill imzasız olduğu için işletim sistemi bir kez uyarı gösterir.',
+    'macOS: simgeye sağ tıkla ve "Aç" de, çıkan pencerede yine "Aç"ı seç.',
+    'Windows: SmartScreen uyarısında "Ek bilgi" -> "Yine de çalıştır".',
+    '', 'İlk üç adım',
     '1. Gmail sekmesinden uygulama şifreni gir ve makbuzları tara.',
     '2. Kartlarını ve aylık limitlerini tanımla.',
     '3. Kullanımı tara; aylardır girmediğin abonelikler işaretlensin.',
@@ -295,8 +318,8 @@ function serveStatic(req, res) {
   const file = path.join(PUBLIC_DIR, rel);
   if (!file.startsWith(PUBLIC_DIR)) { res.writeHead(403); res.end('Yasak'); return; }
 
-  fs.readFile(file, (err, buf) => {
-    if (err) {
+  fs.stat(file, (err, stat) => {
+    if (err || !stat.isFile()) {
       fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (e2, fallback) => {
         if (e2) { res.writeHead(404); res.end('Bulunamadi'); return; }
         res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache, must-revalidate' });
@@ -304,15 +327,46 @@ function serveStatic(req, res) {
       });
       return;
     }
+
     const ext = path.extname(file).toLowerCase();
     const type = MIME[ext] || 'application/octet-stream';
     // HTML onbellege alinmamali: sayfa yeni bir medya dosyasina gectiginde
     // ziyaretci hala eski surumu gosteren HTML'i tutuyordu.
-    const cache = ext === '.html'
-      ? 'no-cache, must-revalidate'
-      : 'public, max-age=86400';
-    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cache });
-    res.end(buf);
+    const cache = ext === '.html' ? 'no-cache, must-revalidate' : 'public, max-age=86400';
+    const headers = { 'Content-Type': type, 'Cache-Control': cache };
+
+    if (RANGEABLE.has(ext)) headers['Accept-Ranges'] = 'bytes';
+
+    const range = RANGEABLE.has(ext) ? String(req.headers.range || '') : '';
+    const m = /^bytes=(\d*)-(\d*)$/.exec(range);
+    if (m) {
+      let start = m[1] === '' ? null : Number(m[1]);
+      let end = m[2] === '' ? null : Number(m[2]);
+      if (start === null) {
+        // "son N bayt" biciminde istek
+        const n = end === null ? 0 : end;
+        start = Math.max(0, stat.size - n);
+        end = stat.size - 1;
+      } else if (end === null || end >= stat.size) {
+        end = stat.size - 1;
+      }
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= stat.size) {
+        res.writeHead(416, { 'Content-Range': `bytes */${stat.size}` });
+        res.end();
+        return;
+      }
+      headers['Content-Range'] = `bytes ${start}-${end}/${stat.size}`;
+      headers['Content-Length'] = end - start + 1;
+      res.writeHead(206, headers);
+      if (req.method === 'HEAD') { res.end(); return; }
+      fs.createReadStream(file, { start, end }).pipe(res);
+      return;
+    }
+
+    headers['Content-Length'] = stat.size;
+    res.writeHead(200, headers);
+    if (req.method === 'HEAD') { res.end(); return; }
+    fs.createReadStream(file).pipe(res);
   });
 }
 

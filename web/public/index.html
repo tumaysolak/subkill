@@ -27,7 +27,7 @@
       "inLanguage": "tr-TR",
       "url": "https://getsubkill.com",
       "downloadUrl": "https://github.com/tumaysolak/subkill/releases",
-      "softwareVersion": "1.0.1",
+      "softwareVersion": "1.0.2",
       "license": "https://opensource.org/licenses/MIT",
       "description": "Aboneliklerini tek panelde toplayan, tamamen yerel çalışan ücretsiz masaüstü uygulaması. Gmail makbuzlarını okuyarak abonelik envanterini kendisi kurar; kullanılmayan, çakışan ve yenilemesi yaklaşan abonelikleri bildirir.",
       "featureList": [
@@ -287,6 +287,25 @@
     </div>
   </section>
 
+  <section id="kurulum" class="section alt">
+    <h2 class="center">İlk açılış</h2>
+    <p class="sub center">SubKill ücretsiz ve imzasız bir uygulama olduğu için işletim sistemi ilk açılışta bir uyarı gösterir. Bir kereliktir.</p>
+    <div class="cards">
+      <div class="card">
+        <h3>macOS</h3>
+        <p>SubKill.app dosyasını Uygulamalar klasörüne sürükle. İlk açışta simgeye <strong>sağ tıkla ve "Aç" de</strong>, çıkan pencerede yine "Aç"ı seç. Bir uyarı gördüysen Sistem Ayarları → Gizlilik ve Güvenlik altında <strong>"Yine de Aç"</strong> düğmesi görünür. Sonraki açılışlarda soru sorulmaz.</p>
+      </div>
+      <div class="card">
+        <h3>Windows</h3>
+        <p>Zip dosyasını açıp klasörü istediğin yere çıkar, SubKill.exe'yi çalıştır. SmartScreen "Bilgisayarınız korundu" derse <strong>"Ek bilgi" → "Yine de çalıştır"</strong> seç.</p>
+      </div>
+      <div class="card">
+        <h3>Neden uyarı çıkıyor?</h3>
+        <p>Apple ve Microsoft, geliştirici sertifikası olan uygulamaları tanıyor. Sertifika yıllık ücretli; SubKill ücretsiz ve açık kaynak olduğu için alınmadı. Kodu <a href="https://github.com/tumaysolak/subkill" target="_blank" rel="noopener">GitHub'da</a> okuyabilir, istersen kendin derleyebilirsin.</p>
+      </div>
+    </div>
+  </section>
+
   <section id="sss" class="section">
     <h2 class="center">Sık sorulan sorular</h2>
     <div class="faq">
@@ -317,6 +336,14 @@
       <details>
         <summary>Gmail dışında bir posta kutusu kullanabilir miyim?</summary>
         <p>Şu an otomatik tarama Gmail için çalışıyor. Diğer kutular için abonelikleri elle ekleyebilir veya CSV olarak içe aktarabilirsin.</p>
+      </details>
+      <details>
+        <summary>macOS "SubKill hasar görmüş" diyor, ne yapmalıyım?</summary>
+        <p>1.0.2 sürümünde giderildi; en güncel sürümü indir. Daha eski bir dosyan varsa onu çöpe at ve yeniden indir. İlk açışta simgeye sağ tıklayıp "Aç" demen yeterli.</p>
+      </details>
+      <details>
+        <summary>Windows SmartScreen uyarı veriyor, güvenli mi?</summary>
+        <p>Uyarı, uygulamanın imzasız olmasından kaynaklanıyor; içeriğiyle ilgili bir tespit değil. "Ek bilgi" → "Yine de çalıştır" ile açılır. Kaynak kodun tamamı GitHub'da açık.</p>
       </details>
       <details>
         <summary>Hangi işletim sistemlerinde çalışır?</summary>

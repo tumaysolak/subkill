@@ -190,7 +190,7 @@ input::placeholder { color: var(--muted); }
 }
 .modal h3 { margin: 0; padding: 16px 20px; border-bottom: 1px solid var(--border); font-size: 15px; }
 .modal-body { padding: 18px 20px; }
-.modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+.modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 5px; }
@@ -217,3 +217,55 @@ input::placeholder { color: var(--muted); }
 .checkline:last-child { border-bottom: 0; }
 .checkline input { accent-color: var(--accent); width: 15px; height: 15px; }
 .checkline .meta { color: var(--muted); font-size: 12px; margin-left: auto; text-align: right; }
+
+/* ---------- rehber blogu ---------- */
+
+.guide { font-size: 13.5px; line-height: 1.6; }
+.guide-lead { color: var(--text); margin: 0 0 14px; }
+.guide p { margin: 0 0 8px; color: var(--muted); }
+
+.steps-list { list-style: none; margin: 0 0 14px; padding: 0; }
+.steps-list > li { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
+.steps-list > li:first-child { border-top: 0; }
+.step-no {
+  flex: 0 0 24px; height: 24px; border-radius: 7px;
+  background: rgba(255,61,87,.14); color: var(--kill);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12.5px;
+}
+.step-text { flex: 1; min-width: 0; }
+.step-text strong { display: block; color: var(--text); margin-bottom: 3px; }
+.step-text p { margin: 0 0 8px; }
+.step-text button { margin-top: 2px; }
+
+.guide-note {
+  border-left: 2px solid var(--border); padding: 9px 0 9px 12px;
+  margin: 10px 0 0; color: var(--muted); font-size: 13px;
+}
+.guide-note.ok { border-left-color: var(--good); }
+.guide-note strong { color: var(--text); }
+.guide-note code {
+  background: var(--surface-2); padding: 1px 5px; border-radius: 4px;
+  font-size: 12.5px; word-break: break-all;
+}
+
+.bullets { margin: 0 0 12px; padding-left: 18px; color: var(--muted); }
+.bullets li { margin-bottom: 6px; }
+
+/* ---------- kurulum sihirbazi ---------- */
+
+.wizard-dots { display: flex; gap: 6px; align-items: center; margin-right: auto; }
+.wizard-dots span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--border); transition: background .15s;
+}
+.wizard-dots span.on { background: var(--kill); }
+.wizard-btns { display: flex; gap: 8px; }
+
+/* ---------- kart hanesi ---------- */
+
+.card-digits {
+  flex: 0 0 auto; padding: 8px 12px; border-radius: 8px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  font-variant-numeric: tabular-nums; letter-spacing: .5px; white-space: nowrap;
+}

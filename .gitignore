@@ -6,3 +6,4 @@ web/data/
 .env
 assets/icon.iconset/
 .frames/
+.shots/

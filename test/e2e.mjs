@@ -38,6 +38,31 @@ await win.waitForSelector('#view', { timeout: 15000 });
 
 console.log('\nSubKill uctan uca test\n');
 
+await step('ilk acilista kurulum rehberi cikiyor', async () => {
+  await win.waitForFunction(() => !document.getElementById('modalBackdrop').hidden, null, { timeout: 8000 });
+  const title = await win.locator('.modal h3').innerText();
+  assert.match(title, /SubKill ne işe yarar/, 'rehberin ilk adimi gorunmuyor');
+  const dots = await win.locator('.wizard-dots span').count();
+  assert.strictEqual(dots, 4, `4 adim bekleniyordu, ${dots} bulundu`);
+});
+
+await step('rehberde ileri gidilebiliyor ve gmail adimi anlatiliyor', async () => {
+  await win.locator('.modal-foot button.primary').click();
+  await win.waitForTimeout(250);
+  const body = await win.locator('.modal-body').innerText();
+  assert.match(body, /2 Adımlı Doğrulama/, 'iki adimli dogrulama uyarisi yok');
+  assert.match(body, /uygulama şifresi/i, 'uygulama sifresi anlatimi yok');
+});
+
+await step('rehber atlanabiliyor ve bir daha acilmiyor', async () => {
+  await win.locator('.modal-foot button.ghost').click(); // Geri
+  await win.waitForTimeout(200);
+  await win.locator('.modal-foot button.ghost').click(); // Rehberi atla
+  await win.waitForFunction(() => document.getElementById('modalBackdrop').hidden, null, { timeout: 5000 });
+  const onboarded = await win.evaluate(() => window.__subkillState && window.__subkillState.settings.onboarded);
+  assert.ok(onboarded !== false, 'onboarded ayari yazilmadi');
+});
+
 await step('panel acildi ve dort ozet karti var', async () => {
   await win.waitForSelector('.stat', { timeout: 10000 });
   const count = await win.locator('.stat').count();
@@ -97,19 +122,23 @@ await step('takvim sekmesi 12 ay ciziyor', async () => {
   assert.strictEqual(rows, 12, `12 ay bekleniyordu, ${rows} bulundu`);
 });
 
-await step('kartlar sekmesi aciliyor ve kart eklenebiliyor', async () => {
+await step('kartlar sekmesinde elle kart ekleme yok, makbuzdan geleni anlatiyor', async () => {
   await win.click('#nav button[data-view="kartlar"]');
   await win.waitForSelector('.panel', { timeout: 5000 });
-  await win.click('button:has-text("+ Kart ekle")');
-  const inputs = win.locator('.panel-body .filters input');
-  await inputs.first().fill('2559');
-  await win.locator('.panel-body .filters input').nth(1).fill('Ana kart');
-  await win.locator('.panel-body .filters input[type="number"]').first().fill('50000');
-  await win.click('button:has-text("Kaydet")');
-  await win.waitForTimeout(800);
+
+  const addBtn = await win.locator('button:has-text("Kart ekle")').count();
+  assert.strictEqual(addBtn, 0, 'elle kart ekleme dugmesi hala duruyor');
+
   const text = await win.locator('#view').innerText();
-  assert.match(text, /Ana kart/, 'tanimlanan kart yuk tablosunda gorunmuyor');
-  assert.match(text, /2559/);
+  assert.match(text, /son d\u00f6rt hanes/i, 'kartlarin makbuzdan geldigi anlatilmiyor');
+  assert.match(text, /bankan\u0131za ba\u011flanmaz/i, 'banka baglantisi olmadigi yazmiyor');
+  assert.match(text, /Gmail taramas\u0131/i, 'kart yoksa ne yapilacagi yazmiyor');
+});
+
+await step('etiket ve limit alanlari makbuzdaki karta bagli aciliyor', async () => {
+  const rows = await win.locator('.card-digits').count();
+  const emptyMsg = await win.locator('#view .empty').count();
+  assert.ok(rows > 0 || emptyMsg > 0, 'ne kart satiri ne de bos durum mesaji var');
 });
 
 await step('tarama sekmesi gmail alanlarini gosteriyor', async () => {

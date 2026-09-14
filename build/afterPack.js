@@ -61,9 +61,26 @@ function walk(dir, acc) {
 }
 
 exports.default = async function afterPack(context) {
+  const appName = context.packager.appInfo.productFilename;
+
+  if (context.electronPlatformName === 'win32') {
+    // Ikon ve surum bilgisi wine yerine saf JS ile yaziliyor; sebebi
+    // winResources.js dosyasinin basinda anlatiliyor.
+    const { applyWindowsResources } = require('./winResources.js');
+    applyWindowsResources({
+      exePath: path.join(context.appOutDir, appName + '.exe'),
+      icoPath: path.join(__dirname, '..', 'assets', 'icon.ico'),
+      version: context.packager.appInfo.version,
+      productName: appName,
+      description: context.packager.appInfo.description || appName,
+      company: 'Copyright (c) 2026 ' + appName
+    });
+    console.log('afterPack: ' + appName + '.exe ikon ve surum bilgisi yazildi (wine kullanilmadi)');
+    return;
+  }
+
   if (context.electronPlatformName !== 'darwin') return;
 
-  const appName = context.packager.appInfo.productFilename;
   const appPath = path.join(context.appOutDir, appName + '.app');
 
   const targets = walk(appPath, []).filter((t) => t !== appPath);

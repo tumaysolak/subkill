@@ -8,6 +8,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -21,6 +22,9 @@ const DOWNLOAD_MAC = process.env.DOWNLOAD_MAC || '';
 const DOWNLOAD_MAC_INTEL = process.env.DOWNLOAD_MAC_INTEL || '';
 const DOWNLOAD_WIN = process.env.DOWNLOAD_WIN || '';
 const AUDIENCE_ID = process.env.RESEND_AUDIENCE_ID || '';
+const SITE_URL = process.env.SITE_URL || 'https://getsubkill.com';
+// Cikis baglantisini imzalamak icin. Ayri bir sir tanimlanmazsa API anahtarindan turetilir.
+const UNSUB_SECRET = process.env.UNSUB_SECRET || RESEND_API_KEY || 'subkill-local';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -54,15 +58,20 @@ function saveLead(entry) {
 
 /* ---------- posta ---------- */
 
-async function sendMail({ to, subject, html }) {
+async function sendMail({ to, subject, html, text, headers, replyTo }) {
   if (!RESEND_API_KEY) return { skipped: true };
+  const payload = { from: FROM, to: [to], subject, html };
+  // Duz metin alternatifi olmayan postalar spam filtrelerinde ceza aliyor.
+  if (text) payload.text = text;
+  if (replyTo) payload.reply_to = replyTo;
+  if (headers) payload.headers = headers;
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ from: FROM, to: [to], subject, html })
+    body: JSON.stringify(payload)
   });
   if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
   return res.json();
@@ -83,7 +92,30 @@ async function addToAudience(email) {
   return res.json().catch(() => ({}));
 }
 
-function downloadEmailHtml() {
+/* ---------- listeden cikis ---------- */
+
+/** Adresi imzalar; boylece cikis baglantisi baskasinin adresi icin kullanilamaz. */
+function unsubToken(email) {
+  return crypto.createHmac('sha256', UNSUB_SECRET).update(email.toLowerCase()).digest('hex').slice(0, 24);
+}
+
+function unsubUrl(email) {
+  return `${SITE_URL}/cikis?e=${encodeURIComponent(email)}&t=${unsubToken(email)}`;
+}
+
+/** Resend audience kaydini "unsubscribed" yapar. Kayit yoksa sessizce gecer. */
+async function unsubscribeFromAudience(email) {
+  if (!RESEND_API_KEY || !AUDIENCE_ID) return { skipped: true };
+  const res = await fetch(`https://api.resend.com/audiences/${AUDIENCE_ID}/contacts/${encodeURIComponent(email)}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ unsubscribed: true })
+  });
+  if (!res.ok && res.status !== 404) throw new Error(`Unsub ${res.status}: ${await res.text()}`);
+  return res.json().catch(() => ({}));
+}
+
+function downloadEmailHtml(email) {
   const btn = (href, label, bg, fg) =>
     href ? `<a href="${href}" style="display:inline-block;background:${bg};color:${fg};padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 8px 8px 0">${label}</a>` : '';
   const mac = btn(DOWNLOAD_MAC, 'macOS (Apple Silicon)', '#ff3d57', '#fff')
@@ -92,17 +124,47 @@ function downloadEmailHtml() {
 
   return `
   <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#1a1f2b;line-height:1.6">
-    <h2 style="margin:0 0 6px">SubKill hazir.</h2>
-    <p style="margin:0 0 18px;color:#5a6478">Kurulum dosyasi asagida. Uygulama tamamen bilgisayarinda calisir, hicbir veri bize gelmez.</p>
+    <h2 style="margin:0 0 6px">SubKill hazır.</h2>
+    <p style="margin:0 0 18px;color:#5a6478">Kurulum dosyası aşağıda. Uygulama tamamen bilgisayarında çalışır, hiçbir veri bize gelmez.</p>
     <p style="margin:0 0 20px">${mac}${win}</p>
-    <p style="margin:0 0 10px"><strong>Ilk 3 adim</strong></p>
+    <p style="margin:0 0 10px"><strong>İlk üç adım</strong></p>
     <ol style="margin:0 0 20px;padding-left:18px;color:#3a4356">
-      <li>Gmail sekmesinden uygulama sifreni gir ve makbuzlari tara.</li>
-      <li>Kartlarini ve aylik limitlerini tanimla.</li>
-      <li>Kullanimi tara - aylardir girmedigin abonelikler isaretlensin.</li>
+      <li>Gmail sekmesinden uygulama şifreni gir ve makbuzları tara.</li>
+      <li>Kartlarını ve aylık limitlerini tanımla.</li>
+      <li>Kullanımı tara; aylardır girmediğin abonelikler işaretlensin.</li>
     </ol>
-    <p style="margin:0;color:#8892a6;font-size:13px">Bu postayi SubKill'i indirmek icin adresini biraktigin icin aldin.</p>
+    <p style="margin:0 0 6px;color:#8892a6;font-size:13px">Bu postayı SubKill'i indirmek için adresini bıraktığın için aldın.</p>
+    <p style="margin:0;color:#8892a6;font-size:13px">
+      Yeni sürüm duyurularını istemiyorsan <a href="${unsubUrl(email)}" style="color:#8892a6">listeden çık</a>.
+      SubKill &middot; <a href="${SITE_URL}" style="color:#8892a6">getsubkill.com</a>
+    </p>
   </div>`;
+}
+
+/** HTML'siz istemciler ve spam filtreleri icin duz metin karsiligi. */
+function downloadEmailText(email) {
+  const lines = ['SubKill hazır.', '',
+    'Kurulum dosyası aşağıda. Uygulama tamamen bilgisayarında çalışır, hiçbir veri bize gelmez.', ''];
+  if (DOWNLOAD_MAC) lines.push(`macOS (Apple Silicon): ${DOWNLOAD_MAC}`);
+  if (DOWNLOAD_MAC_INTEL) lines.push(`macOS (Intel): ${DOWNLOAD_MAC_INTEL}`);
+  if (DOWNLOAD_WIN) lines.push(`Windows (x64): ${DOWNLOAD_WIN}`);
+  lines.push('', 'İlk üç adım',
+    '1. Gmail sekmesinden uygulama şifreni gir ve makbuzları tara.',
+    '2. Kartlarını ve aylık limitlerini tanımla.',
+    '3. Kullanımı tara; aylardır girmediğin abonelikler işaretlensin.',
+    '', "Bu postayı SubKill'i indirmek için adresini bıraktığın için aldın.",
+    `Listeden çıkmak için: ${unsubUrl(email)}`,
+    `SubKill - ${SITE_URL}`);
+  return lines.join('\n');
+}
+
+function unsubPage(title, body) {
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>${title} &mdash; SubKill</title><link rel="stylesheet" href="/style.css" /></head>
+<body><main class="doc"><h1>${title}</h1><p>${body}</p>
+<p style="margin-top:24px"><a href="/">Ana sayfaya dön</a></p></main></body></html>`;
 }
 
 /* ---------- istek isleme ---------- */
@@ -167,12 +229,25 @@ async function handleLead(req, res) {
   try { await addToAudience(email); } catch (err) { console.error('audience yazilamadi', err.message); }
 
   try {
-    await sendMail({ to: email, subject: 'SubKill indirme baglantin', html: downloadEmailHtml() });
+    await sendMail({
+      to: email,
+      subject: 'SubKill indirme bağlantın',
+      html: downloadEmailHtml(email),
+      text: downloadEmailText(email),
+      replyTo: 'merhaba@getsubkill.com',
+      // Gmail ve Outlook toplu gonderende tek tikla cikis basligi bekliyor;
+      // olmadiginda posta dogrudan spam klasorune dusuyor.
+      headers: {
+        'List-Unsubscribe': `<${unsubUrl(email)}>, <mailto:merhaba@getsubkill.com?subject=cikis>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+      }
+    });
     if (NOTIFY_TO && isNew) {
       await sendMail({
         to: NOTIFY_TO,
-        subject: `SubKill: yeni kayit (${email})`,
-        html: `<p>${email}</p><p>platform: ${entry.platform || '-'}</p><p>${entry.at}</p>`
+        subject: `SubKill: yeni kayıt (${email})`,
+        html: `<p>${email}</p><p>platform: ${entry.platform || '-'}</p><p>${entry.at}</p>`,
+        text: `${email}\nplatform: ${entry.platform || '-'}\n${entry.at}`
       });
     }
   } catch (err) {
@@ -181,6 +256,37 @@ async function handleLead(req, res) {
   }
 
   return json(res, 200, { ok: true, mailed: true });
+}
+
+/** Tek tikla listeden cikis. GET insan icin sayfa doner, POST posta istemcisi icindir. */
+async function handleUnsub(req, res) {
+  const q = new URL(req.url, SITE_URL).searchParams;
+  const email = String(q.get('e') || '').trim().toLowerCase();
+  const token = String(q.get('t') || '');
+  const valid = EMAIL_RE.test(email) && token && token === unsubToken(email);
+
+  if (req.method === 'POST') {
+    if (valid) { try { await unsubscribeFromAudience(email); } catch (err) { console.error('cikis', err.message); } }
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('ok');
+    return;
+  }
+
+  let title = 'Çıkış yapıldı';
+  let body = `<strong>${email}</strong> adresi duyuru listesinden çıkarıldı. Bundan sonra SubKill duyurusu gönderilmeyecek.`;
+  if (!valid) {
+    title = 'Bağlantı geçersiz';
+    body = 'Çıkış bağlantısı okunamadı. <a href="mailto:merhaba@getsubkill.com?subject=cikis">merhaba@getsubkill.com</a> adresine yazarsan listeden çıkarırız.';
+  } else {
+    try { await unsubscribeFromAudience(email); }
+    catch (err) {
+      console.error('cikis', err.message);
+      title = 'Şimdi olmadı';
+      body = 'Kayıt güncellenemedi. <a href="mailto:merhaba@getsubkill.com?subject=cikis">merhaba@getsubkill.com</a> adresine yazarsan elle çıkarırız.';
+    }
+  }
+  res.writeHead(200, { 'Content-Type': MIME['.html'] });
+  res.end(unsubPage(title, body));
 }
 
 function serveStatic(req, res) {
@@ -207,6 +313,7 @@ function serveStatic(req, res) {
 const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/api/lead') return handleLead(req, res);
   if (req.url === '/healthz') return json(res, 200, { ok: true });
+  if ((req.url || '').startsWith('/cikis')) return handleUnsub(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); res.end(); return; }
   return serveStatic(req, res);
 });

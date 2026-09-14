@@ -27,17 +27,17 @@
       "inLanguage": "tr-TR",
       "url": "https://getsubkill.com",
       "downloadUrl": "https://github.com/tumaysolak/subkill/releases",
-      "softwareVersion": "1.0.0",
+      "softwareVersion": "1.0.1",
       "license": "https://opensource.org/licenses/MIT",
-      "description": "Aboneliklerini tek panelde toplayan, tamamen yerel calisan ucretsiz masaustu uygulamasi. Gmail makbuzlarini okuyarak abonelik envanterini kendisi kurar; kullanilmayan, cakisan ve yenilemesi yaklasan abonelikleri bildirir.",
+      "description": "Aboneliklerini tek panelde toplayan, tamamen yerel çalışan ücretsiz masaüstü uygulaması. Gmail makbuzlarını okuyarak abonelik envanterini kendisi kurar; kullanılmayan, çakışan ve yenilemesi yaklaşan abonelikleri bildirir.",
       "featureList": [
-        "Gmail makbuzlarindan otomatik abonelik envanteri",
-        "Tarayici gecmisinden kullanim tespiti",
-        "Ayni kategorideki aboneliklerin cakisma analizi",
-        "Kart bazli aylik yuk ve limit uyarisi",
-        "Ucretsiz deneme bitis hatirlatmasi",
-        "12 aylik yenileme takvimi",
-        "TCMB kuruyla TL karsiligi"
+        "Gmail makbuzlarından otomatik abonelik envanteri",
+        "Tarayıcı geçmişinden kullanım tespiti",
+        "Aynı kategorideki aboneliklerin çakışma analizi",
+        "Kart bazlı aylık yük ve limit uyarısı",
+        "Ücretsiz deneme bitiş hatırlatması",
+        "12 aylık yenileme takvimi",
+        "TCMB kuruyla TL karşılığı"
       ],
       "offers": {
         "@type": "Offer",
@@ -51,9 +51,9 @@
       "@type": "VideoObject",
       "@id": "https://getsubkill.com/#video",
       "name": "SubKill tanıtımı",
-      "description": "SubKill'in aboneliklerini nasıl tek panelde topladığını, kullanılmayanları ve çakışmaları nasıl gösterdiğini anlatan 43 saniyelik Türkçe tanıtım videosu.",
-      "thumbnailUrl": "https://getsubkill.com/tanitim-poster.jpg",
-      "contentUrl": "https://getsubkill.com/tanitim.mp4",
+      "description": "SubKill'in aboneliklerini nasıl tek panelde topladığını, kullanılmayanları ve çakışmaları nasıl gösterdiğini anlatan Türkçe tanıtım videosu.",
+      "thumbnailUrl": "https://getsubkill.com/tanitim-poster-v2.jpg",
+      "contentUrl": "https://getsubkill.com/tanitim-v2.mp4",
       "uploadDate": "2026-09-14",
       "duration": "PT43S",
       "inLanguage": "tr-TR"
@@ -64,7 +64,9 @@
       "url": "https://getsubkill.com",
       "name": "SubKill",
       "inLanguage": "tr-TR",
-      "about": { "@id": "https://getsubkill.com/#app" }
+      "about": {
+        "@id": "https://getsubkill.com/#app"
+      }
     },
     {
       "@type": "FAQPage",
@@ -72,18 +74,10 @@
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "SubKill nedir?",
+          "name": "SubKill ücretsiz mi?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "SubKill, tum aboneliklerini tek panelde toplayan, macOS ve Windows icin ucretsiz bir masaustu uygulamasidir. Posta kutundaki fatura ve makbuz maillerini okuyup envanteri kendisi kurar; sonra bu ay ne odeyecegini, hangi aboneligin kullanilmadigini ve hangilerinin ayni isi yaptigini soyler."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "SubKill ucretsiz mi?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Evet, tamamen ucretsiz. Hesap acmak, kredi karti girmek veya abone olmak gerekmez. Kaynak kodu MIT lisansiyla acik."
+            "text": "Evet, tamamen ücretsiz. Hesap açmak, kredi kartı girmek veya abone olmak gerekmez. Kaynak kodu MIT lisansıyla açık."
           }
         },
         {
@@ -91,31 +85,31 @@
           "name": "Verilerim nereye gidiyor?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hicbir yere. SubKill'in sunucusu yok. Abonelik envanterin kendi bilgisayarindaki tek bir dosyada durur, posta kutusu baglantisi dogrudan senin makinenden Gmail'e gider. Uygulama telemetri toplamaz."
+            "text": "Hiçbir yere. SubKill'in sunucusu yok. Abonelik envanterin kendi bilgisayarındaki tek bir dosyada durur, posta kutusu bağlantısı doğrudan senin makinenden Gmail'e gider. Uygulama telemetri toplamaz."
           }
         },
         {
           "@type": "Question",
-          "name": "Gmail sifremi girmem gerekiyor mu?",
+          "name": "Gmail şifremi girmem gerekiyor mu?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hayir. Hesap parolan istenmez ve calismaz. Google hesabindan urettigin 16 haneli bir uygulama sifresi kullanilir; bu sifre isletim sisteminin guvenli kasasinda (macOS Keychain, Windows DPAPI) saklanir ve istedigin an Google tarafindan iptal edilebilir."
+            "text": "Hayır. Hesap parolan istenmez ve çalışmaz. Google hesabından ürettiğin 16 haneli bir uygulama şifresi kullanılır. Bu şifre işletim sisteminin güvenli kasasında saklanır ve istediğin an Google tarafından iptal edilebilir."
           }
         },
         {
           "@type": "Question",
-          "name": "Servislerin sifrelerini sakliyor mu?",
+          "name": "Servislerin şifrelerini saklıyor mu?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hayir. SubKill hicbir servis parolasi saklamaz ve istemez. Yalnizca hangi hesapla ve hangi yontemle giris yaptigin bilgisini tutar; parola yonetimini oldugu yerde birakir."
+            "text": "Hayır. Hiçbir servis parolası saklanmaz ve istenmez. Yalnızca hangi hesapla, hangi yöntemle giriş yaptığın bilgisi tutulur; parola yönetimi olduğu yerde kalır."
           }
         },
         {
           "@type": "Question",
-          "name": "Banka hesabima veya kartima baglaniyor mu?",
+          "name": "Banka hesabıma veya kartıma bağlanıyor mu?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hayir. Banka veya kart entegrasyonu yoktur. Kart bilgisi olarak yalnizca makbuzlarda gecen son dort hane kullanilir; bu da odeme icin degil, hangi aboneligin hangi karttan ciktigini gruplamak icindir."
+            "text": "Hayır. Banka veya kart entegrasyonu yok. Kart bilgisi olarak yalnızca makbuzlarda geçen son dört hane kullanılır; bu da ödeme için değil, hangi aboneliğin hangi karttan çıktığını gruplamak için."
           }
         },
         {
@@ -123,15 +117,23 @@
           "name": "Abonelikleri kendisi iptal ediyor mu?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hayir. SubKill hangi aboneligin bosa gittigini gosterir ve yillik maliyetini yazar; iptal kararini ve islemini sen yaparsin."
+            "text": "Hayır. Hangi aboneliğin boşa gittiğini gösterir ve yıllık maliyetini yazar; iptal kararını ve işlemini sen yaparsın."
           }
         },
         {
           "@type": "Question",
-          "name": "Hangi isletim sistemlerinde calisir?",
+          "name": "Gmail dışında bir posta kutusu kullanabilir miyim?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "macOS 12 ve ustu (Apple Silicon ve Intel) ile Windows 10 ve ustu (x64 ve ARM64)."
+            "text": "Şu an otomatik tarama Gmail için çalışıyor. Diğer kutular için abonelikleri elle ekleyebilir veya CSV olarak içe aktarabilirsin."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Hangi işletim sistemlerinde çalışır?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "macOS 12 ve üstü (Apple Silicon ve Intel) ile Windows 10 ve üstü (x64 ve ARM64)."
           }
         }
       ]
@@ -186,7 +188,7 @@
 
     <figure class="video-wrap">
       <div class="video-frame">
-        <video id="tanitim" src="/tanitim.mp4" poster="/tanitim-poster.jpg"
+        <video id="tanitim" src="/tanitim-v2.mp4" poster="/tanitim-poster-v2.jpg"
                autoplay muted loop playsinline preload="metadata"
                aria-label="SubKill tanıtım videosu"></video>
         <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">
@@ -286,7 +288,7 @@
   </section>
 
   <section id="sss" class="section">
-    <h2 class="center">Sik sorulan sorular</h2>
+    <h2 class="center">Sık sorulan sorular</h2>
     <div class="faq">
       <details>
         <summary>SubKill ücretsiz mi?</summary>

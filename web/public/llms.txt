@@ -1,53 +1,53 @@
 # SubKill
 
-> Aboneliklerini tek panelde toplayan, tamamen yerel calisan ucretsiz masaustu
-> uygulamasi. macOS ve Windows. Gmail makbuzlarini okuyarak abonelik envanterini
-> kendisi kurar; kullanilmayan, cakisan ve yenilemesi yaklasan abonelikleri bildirir.
+> Aboneliklerini tek panelde toplayan, tamamen yerel çalışan ücretsiz masaüstü
+> uygulaması. macOS ve Windows. Gmail makbuzlarını okuyarak abonelik envanterini
+> kendisi kurar; kullanılmayan, çakışan ve yenilemesi yaklaşan abonelikleri bildirir.
 
-SubKill, yapay zeka araclari ve SaaS aboneliklerinin sayisi arttikca kontrolun
-kaybolmasi sorununu cozer. Sunucusu yoktur: envanter kullanicinin kendi
-makinesinde tek bir dosyada durur, posta kutusu baglantisi dogrudan kullanicinin
-bilgisayarindan kurulur ve hicbir veri disariya gonderilmez.
+SubKill, yapay zeka araçları ve SaaS aboneliklerinin sayısı arttıkça kontrolün
+kaybolması sorununu çözer. Sunucusu yoktur: envanter kullanıcının kendi
+makinesinde tek bir dosyada durur, posta kutusu bağlantısı doğrudan kullanıcının
+bilgisayarından kurulur ve hiçbir veri dışarıya gönderilmez.
 
 ## Temel bilgiler
 
 - Ad: SubKill
-- Kategori: Abonelik takibi, kisisel finans, masaustu yazilimi
+- Kategori: Abonelik takibi, kişisel finans, masaüstü yazılımı
 - Platform: macOS 12+ (Apple Silicon ve Intel), Windows 10+ (x64 ve ARM64)
-- Fiyat: Ucretsiz
-- Dil: Turkce
-- Kaynak kod: Acik (MIT), https://github.com/tumaysolak/subkill
+- Fiyat: Ücretsiz
+- Dil: Türkçe
+- Kaynak kod: Açık (MIT), https://github.com/tumaysolak/subkill
 - Web: https://getsubkill.com
-- Iletisim: merhaba@getsubkill.com
+- İletişim: merhaba@getsubkill.com
 
 ## Ne yapar
 
-- Gmail kutusundaki fatura ve makbuz maillerini IMAP uzerinden tarar; servis adi,
-  tutar, para birimi, odeme periyodu, yenileme tarihi ve kartin son dort hanesini
-  otomatik cikarir.
-- Tarayici gecmisinden her servise en son ne zaman girildigini bulur ve uzun
-  suredir kullanilmayan abonelikleri yillik maliyetiyle listeler.
-- Ayni kategorideki abonelikleri aylik yukleri ve son kullanim tarihleriyle yan
-  yana koyarak islevsel cakismalari gosterir.
-- Kart bazli aylik yuku hesaplar; tanimlanan limite yaklasildiginda uyarir.
-- Ucretsiz deneme sureleri bitmeden once hatirlatir.
-- 12 aylik yenileme takvimi cikarir; yillik abonelikler dustukleri ayda gorunur.
-- TCMB kuruyla TL karsiliklarini hesaplar.
+- Gmail kutusundaki fatura ve makbuz maillerini IMAP üzerinden tarar; servis adı,
+  tutar, para birimi, ödeme periyodu, yenileme tarihi ve kartın son dört hanesini
+  otomatik çıkarır.
+- Tarayıcı geçmişinden her servise en son ne zaman girildiğini bulur ve uzun
+  süredir kullanılmayan abonelikleri yıllık maliyetiyle listeler.
+- Aynı kategorideki abonelikleri aylık yükleri ve son kullanım tarihleriyle yan
+  yana koyarak işlevsel çakışmaları gösterir.
+- Kart bazlı aylık yükü hesaplar; tanımlanan limite yaklaşıldığında uyarır.
+- Ücretsiz deneme süreleri bitmeden önce hatırlatır.
+- 12 aylık yenileme takvimi çıkarır; yıllık abonelikler düştükleri ayda görünür.
+- TCMB kuruyla TL karşılıklarını hesaplar.
 
 ## Gizlilik
 
 - Sunucu yok, hesap yok, telemetri yok.
-- Abonelik envanteri kullanicinin makinesinde tek bir JSON dosyasinda durur.
-- Gmail uygulama sifresi isletim sisteminin guvenli kasasinda (macOS Keychain,
-  Windows DPAPI) saklanir; veri dosyasina yazilmaz.
-- Servislerin parolalari hicbir zaman istenmez ve saklanmaz; yalnizca hangi
-  hesapla, hangi yontemle giris yapildigi bilgisi tutulur.
+- Abonelik envanteri kullanıcının makinesinde tek bir JSON dosyasında durur.
+- Gmail uygulama şifresi işletim sisteminin güvenli kasasında (macOS Keychain,
+  Windows DPAPI) saklanır; veri dosyasına yazılmaz.
+- Servislerin parolaları hiçbir zaman istenmez ve saklanmaz; yalnızca hangi
+  hesapla, hangi yöntemle giriş yapıldığı bilgisi tutulur.
 
-## Baglantilar
+## Bağlantılar
 
-- [Ana sayfa](https://getsubkill.com): urun tanitimi ve ucretsiz indirme
-- [Aydinlatma metni ve gizlilik](https://getsubkill.com/gizlilik.html): kisisel veri isleme
-- [Cerez politikasi](https://getsubkill.com/cerez.html): site cerez kullanmaz
-- [Kullanim kosullari](https://getsubkill.com/kosullar.html): lisans ve sorumluluk
-- [GitHub deposu](https://github.com/tumaysolak/subkill): kaynak kod ve surumler
-- [Surumler](https://github.com/tumaysolak/subkill/releases): macOS ve Windows paketleri
+- [Ana sayfa](https://getsubkill.com): ürün tanıtımı ve ücretsiz indirme
+- [Aydınlatma metni ve gizlilik](https://getsubkill.com/gizlilik.html): kişisel veri işleme
+- [Çerez politikası](https://getsubkill.com/cerez.html): site çerez kullanmaz
+- [Kullanım koşulları](https://getsubkill.com/kosullar.html): lisans ve sorumluluk
+- [GitHub deposu](https://github.com/tumaysolak/subkill): kaynak kod ve sürümler
+- [Sürümler](https://github.com/tumaysolak/subkill/releases): macOS ve Windows paketleri

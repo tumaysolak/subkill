@@ -141,8 +141,8 @@ function viewPanel() {
   wrap.appendChild(el('div', { class: 'stats' }, [
     stat('Aylık yük', tl(c.summary.monthly), `${c.summary.count} aktif abonelik`),
     stat('Yıllık yük', tl(c.summary.yearly), 'bugünkü kurla'),
-    stat('Kullanılmayanlar', tl(dormantYearly), `${c.dormant.length} abonelik · yillik`, 'kill'),
-    stat('Çakışma tasarrufu', tl(overlapMonthly * 12), `${c.overlaps.length} kategoride · yillik`, 'good')
+    stat('Kullanılmayanlar', tl(dormantYearly), `${c.dormant.length} abonelik · yıllık`, 'kill'),
+    stat('Çakışma tasarrufu', tl(overlapMonthly * 12), `${c.overlaps.length} kategoride · yıllık`, 'good')
   ]));
 
   // Uyarilar

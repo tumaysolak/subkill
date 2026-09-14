@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-# Yapay zeka motorlarina acik
+# Yapay zeka motorlarına açık
 User-agent: GPTBot
 Allow: /
 

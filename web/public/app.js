@@ -1,32 +1,48 @@
 'use strict';
 
 function detectPlatform() {
-  const p = (navigator.platform || navigator.userAgent || '').toLowerCase();
-  if (p.includes('mac')) return 'mac';
-  if (p.includes('win')) return 'win';
+  const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '';
+  const s = String(p).toLowerCase();
+  if (s.includes('mac')) return 'mac';
+  if (s.includes('win')) return 'win';
   return 'other';
 }
 
-function wire(formId, noteId, defaultNote) {
+function wire(formId, noteId) {
   const form = document.getElementById(formId);
-  if (!form) return;
   const note = document.getElementById(noteId);
+  if (!form || !note) return;
+
+  const baseClass = note.className;
+  const baseHtml = note.innerHTML;
   const button = form.querySelector('button');
   const email = form.querySelector('input[type="email"]');
+  let resetTimer;
+
+  const setNote = (text, kind) => {
+    clearTimeout(resetTimer);
+    note.textContent = text;
+    note.className = `${baseClass} ${kind}`.trim();
+    if (kind !== 'ok') {
+      resetTimer = setTimeout(() => {
+        note.innerHTML = baseHtml;
+        note.className = baseClass;
+      }, 7000);
+    }
+  };
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const value = (email.value || '').trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
-      note.textContent = 'Gecerli bir e-posta adresi girin.';
-      note.className = 'form-note err' + (formId.endsWith('2') ? ' center' : '');
+      setNote('Geçerli bir e-posta adresi girin.', 'err');
       email.focus();
       return;
     }
 
     button.disabled = true;
     const original = button.textContent;
-    button.textContent = 'Gonderiliyor...';
+    button.textContent = 'Gönderiliyor...';
 
     try {
       const res = await fetch('/api/lead', {
@@ -40,27 +56,23 @@ function wire(formId, noteId, defaultNote) {
         })
       });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'Gonderilemedi.');
+      if (!data.ok) throw new Error(data.error || 'Gönderilemedi.');
 
       form.reset();
-      note.textContent = data.mailed === false
-        ? 'Kaydedildi. Indirme baglantisi kisa sure icinde gelecek.'
-        : 'Gonderildi. Indirme baglantisi e-postanda.';
-      note.className = 'form-note ok' + (formId.endsWith('2') ? ' center' : '');
+      setNote(
+        data.mailed === false
+          ? 'Kaydedildi. İndirme bağlantısı kısa süre içinde gelecek.'
+          : 'Gönderildi. İndirme bağlantısı e-postanda.',
+        'ok'
+      );
     } catch (err) {
-      note.textContent = err.message || 'Bir sorun oldu, tekrar deneyin.';
-      note.className = 'form-note err' + (formId.endsWith('2') ? ' center' : '');
+      setNote(err.message || 'Bir sorun oldu, tekrar deneyin.', 'err');
     } finally {
       button.disabled = false;
       button.textContent = original;
-      setTimeout(() => {
-        if (note.classList.contains('ok')) return;
-        note.textContent = defaultNote;
-        note.className = 'form-note' + (formId.endsWith('2') ? ' center' : '');
-      }, 6000);
     }
   });
 }
 
-wire('leadForm', 'formNote', 'Kredi karti yok, hesap acmak yok. Indirme baglantisi e-postana gelir.');
-wire('leadForm2', 'formNote2', 'macOS 12+ ve Windows 10+ · yaklasik 95 MB');
+wire('leadForm', 'formNote');
+wire('leadForm2', 'formNote2');

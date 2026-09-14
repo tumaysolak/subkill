@@ -3,12 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>SubKill — Aboneliklerini gör, gereksizini kes</title>
-<meta name="description" content="SubKill posta kutundaki makbuzları okur, tüm aboneliklerini tek panelde toplar. Yenilemesi geleni, birbirinin işini yapanı ve aylardır girmediğini söyler. Tamamen bilgisayarında çalışır." />
+<title>SubKill — aboneliklerini tek panelde toplayan Mac ve Windows uygulaması</title>
+<meta name="description" content="SubKill posta kutundaki makbuzları okuyup tüm aboneliklerini tek panelde toplar. Yenilemesi geleni, birbirinin işini yapanı ve aylardır girmediğini söyler. Tamamen bilgisayarında çalışır, ücretsiz." />
 <link rel="icon" href="/logo.svg" type="image/svg+xml" />
-<meta property="og:title" content="SubKill — Aboneliklerini gör, gereksizini kes" />
+<meta property="og:title" content="SubKill — aboneliklerini gör, gereksizini kes" />
 <meta property="og:description" content="Makbuzlarından abonelik envanteri kurar, kullanmadıklarını söyler. Veri bilgisayarından çıkmaz." />
 <meta property="og:type" content="website" />
+<meta property="og:url" content="https://getsubkill.com" />
+<meta property="og:image" content="https://getsubkill.com/panel.png" />
+<link rel="canonical" href="https://getsubkill.com" />
 <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -24,102 +27,96 @@
     </svg>
     <span>SubKill</span>
   </a>
-  <nav class="nav-links">
-    <a href="#nasil">Nasıl çalışır</a>
-    <a href="#ozellikler">Ne söyler</a>
-    <a href="#gizlilik">Gizlilik</a>
-    <a href="#indir" class="nav-cta">Ücretsiz indir</a>
-  </nav>
+  <a href="#indir" class="nav-cta">İndir</a>
 </header>
 
 <main>
   <section class="hero">
-    <div class="hero-text">
-      <div class="pill">Masaüstü · macOS ve Windows · ücretsiz</div>
-      <h1>Kaç aboneliğin var,<br><span class="hl">gerçekten</span> biliyor musun?</h1>
-      <p class="lede">
-        Yapay zeka araçları, SaaS hesapları, API kredileri, alan adları. Her biri ayrı bir karttan,
-        ayrı bir tarihte, ayrı bir posta kutusuna düşüyor. SubKill makbuzlarını okuyup hepsini tek
-        panelde toplar; sonra hangisini kesmen gerektiğini söyler.
-      </p>
+    <div class="pill">macOS ve Windows · ücretsiz</div>
+    <h1>
+      Onlarca abonelik.<br />
+      <span class="hl">Tek panel.</span><br />
+      Kesilecekler belli.
+    </h1>
+    <p class="lede">
+      Posta kutundaki makbuzları okur, hepsini tek envanterde toplar. Yenilemesi geleni,
+      birbirinin işini yapanı ve aylardır girmediğini söyler. Veri bilgisayarından çıkmaz.
+    </p>
 
-      <form class="capture" id="leadForm" novalidate>
-        <input type="email" id="email" name="email" placeholder="calisma@adresin.com" autocomplete="email" required />
-        <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
-        <button type="submit" id="submitBtn">Ücretsiz indir</button>
-      </form>
-      <div class="form-note" id="formNote">Kredi kartı yok, hesap açmak yok. İndirme bağlantısı e-postana gelir.</div>
+    <form class="capture" id="leadForm" novalidate>
+      <input type="email" id="email" name="email" placeholder="E-posta adresin" autocomplete="email" required />
+      <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <button type="submit">İndirme bağlantısını gönder</button>
+    </form>
+    <div class="form-note" id="formNote">
+      Bağlantıyı e-postana yollarız, hemen de indirebilirsin. Adresin yalnızca bu bağlantıyı
+      göndermek için işlenir; ayrıntılar <a href="/aydinlatma.html">aydınlatma metninde</a>.
     </div>
 
-    <div class="hero-visual" aria-hidden="true">
-      <div class="window">
-        <div class="win-bar"><i></i><i></i><i></i></div>
-        <div class="win-body">
-          <div class="mock-stats">
-            <div class="ms"><span>Aylık yük</span><strong>68.420 ₺</strong></div>
-            <div class="ms"><span>Yıllık yük</span><strong>821.040 ₺</strong></div>
-            <div class="ms kill"><span>Kullanılmayan</span><strong>134.900 ₺</strong></div>
-          </div>
-          <div class="mock-list">
-            <div class="ml crit"><b>Deneme bitiyor</b><span>ManyChat · 3 gün · ücretli plana geçer</span></div>
-            <div class="ml warn"><b>Kart limiti</b><span>2559 · bu ay 41.200 ₺ · limitin %87'si</span></div>
-            <div class="ml"><b>142 gündür girilmedi</b><span>Runway · yılda 16.800 ₺</span></div>
-            <div class="ml"><b>Aynı işi yapan 3 abonelik</b><span>Video üretimi kategorisinde</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <figure class="shot">
+      <img src="/panel.png" alt="SubKill panelinde aylık yük, kullanılmayan abonelikler ve aksiyon listesi" width="1600" height="1050" />
+      <figcaption>Panel: aylık yük, kullanılmayanların yıllık maliyeti ve sıralanmış aksiyon listesi.</figcaption>
+    </figure>
   </section>
 
-  <section class="strip">
-    <div><strong>4 dakika</strong><span>kurulumdan ilk envantere</span></div>
-    <div><strong>0 sunucu</strong><span>veri bilgisayarından çıkmaz</span></div>
-    <div><strong>0 parola</strong><span>hiçbir şifre saklanmaz</span></div>
+  <section class="section">
+    <h2 class="center">SubKill nedir?</h2>
+    <p class="prose">
+      SubKill, yapay zeka araçlarından SaaS hesaplarına kadar tüm aboneliklerini tek yerde
+      toplayan, macOS ve Windows için ücretsiz bir masaüstü uygulamasıdır. Gmail kutundaki
+      fatura ve makbuzları IMAP üzerinden okuyup servis adını, tutarı, para birimini, ödeme
+      periyodunu, yenileme tarihini ve kartın son dört hanesini kendisi çıkarır. Tarayıcı
+      geçmişinden her servise en son ne zaman girdiğini bulur; böylece ödemeye devam ettiğin
+      ama aylardır açmadığın hesaplar ortaya çıkar. Sunucusu yoktur: envanter senin
+      makinendeki tek bir dosyada durur, posta kutusu bağlantısı doğrudan bilgisayarından
+      kurulur ve hiçbir veri bize ulaşmaz.
+    </p>
   </section>
 
-  <section id="nasil" class="section">
-    <h2>Üç adımda kuruluyor</h2>
+  <section class="section alt">
+    <h2 class="center">Üç adım, tek pencere</h2>
+    <p class="sub center">Kurulumdan ilk envantere dört dakika.</p>
     <div class="steps">
       <div class="step">
         <span class="num">1</span>
         <h3>Makbuzları tara</h3>
-        <p>Gmail uygulama şifreni gir. SubKill posta kutundaki fatura ve makbuzları okuyup servis adı, tutar, para birimi, periyot, yenileme tarihi ve kartın son dört hanesini çıkarır.</p>
+        <p>Gmail uygulama şifreni gir. Uygulama fatura maillerini ayıklayıp envanteri kurar; hangi servise ne ödediğin ilk taramada çıkar.</p>
       </div>
       <div class="step">
         <span class="num">2</span>
         <h3>Kartlarını tanımla</h3>
-        <p>Hangi abonelik hangi karttan çıkıyor görürsün. Aylık limit yazarsan, o karta binen yük limitine yaklaştığında önceden uyarır.</p>
+        <p>Hangi abonelik hangi karttan çıkıyor görürsün. Aylık limit yazarsan, o karta binen yük limite yaklaşınca önceden uyarır.</p>
       </div>
       <div class="step">
         <span class="num">3</span>
         <h3>Kullanımı tara</h3>
-        <p>Tarayıcı geçmişinden her servise en son ne zaman girdiğini bulur. Aylardır açmadığın ama ödemeye devam ettiğin hesaplar listenin başına çıkar.</p>
+        <p>Tarayıcı geçmişinden son giriş tarihlerini okur. Uzun süredir açılmayan abonelikler yıllık maliyetiyle listenin başına çıkar.</p>
       </div>
     </div>
   </section>
 
-  <section id="ozellikler" class="section alt">
-    <h2>Panel sana ne söyler</h2>
+  <section class="section">
+    <h2 class="center">Panel sana ne söyler</h2>
     <div class="cards">
       <div class="card">
         <h3>Bu ay ne ödeyeceğim</h3>
-        <p>Aylık ve yıllık toplam yük, güncel TCMB kuruyla TL karşılığı. Yıllık abonelikler düştüğü ayda görünür, ortalamaya yayılmaz.</p>
+        <p>Aylık ve yıllık toplam yük, güncel TCMB kuruyla TL karşılığı. Yıllık abonelikler düştükleri ayda görünür, ortalamaya yayılmaz.</p>
       </div>
       <div class="card">
-        <h3>Hangi kart ne kadar taşıyor</h3>
+        <h3>Hangi kart ne taşıyor</h3>
         <p>Kart bazlı dağılım ve limit uyarısı. Yıllık yenilemelerin aynı aya denk geldiği durumlar önceden görünür.</p>
       </div>
       <div class="card">
         <h3>Hangisi diğerinin işini yapıyor</h3>
-        <p>Aynı kategoride birden fazla abonelik varsa yan yana koyar: aylık yükleri ve en son ne zaman kullanıldıkları. Kararı sen verirsin.</p>
+        <p>Aynı kategorideki abonelikleri aylık yükleri ve son kullanım tarihleriyle yan yana koyar. Kararı sen verirsin.</p>
       </div>
       <div class="card">
         <h3>Hangisini iptal etmeliyim</h3>
-        <p>Uzun süredir girilmemiş abonelikler yıllık maliyetiyle listelenir. Bir bakışta neyin boşa gittiğini görürsün.</p>
+        <p>Uzun süredir girilmemiş abonelikler yıllık maliyetiyle sıralanır. Bir bakışta neyin boşa gittiğini görürsün.</p>
       </div>
       <div class="card">
         <h3>Deneme ne zaman bitiyor</h3>
-        <p>Ücretsiz denemeler bitmeden önce uyarır. Unutup ücrete dönen abonelik kalmaz.</p>
+        <p>Ücretsiz denemeler bitmeden uyarır. Unutup ücrete dönen abonelik kalmaz.</p>
       </div>
       <div class="card">
         <h3>Giriş bilgisi neydi</h3>
@@ -128,38 +125,41 @@
     </div>
   </section>
 
-  <section id="gizlilik" class="section">
+  <section class="section alt">
     <div class="privacy">
       <h2>Veri bilgisayarından çıkmaz</h2>
       <p>
-        SubKill'in sunucusu yok. Envanterin makinendeki tek bir dosyada durur; posta kutuna bağlantı
-        doğrudan senin bilgisayarından Gmail'e gider, aradan kimse geçmez. Gmail uygulama şifren
-        işletim sisteminin güvenli kasasında saklanır, veri dosyasına yazılmaz. Hesap açmıyorsun,
-        giriş yapmıyorsun, abone olmuyorsun.
+        SubKill'in sunucusu yok. Envanterin makinendeki tek bir dosyada durur; posta kutuna
+        bağlantı doğrudan senin bilgisayarından Gmail'e gider, aradan kimse geçmez. Gmail
+        uygulama şifren işletim sisteminin güvenli kasasında saklanır, veri dosyasına yazılmaz.
+        Hesap açmıyorsun, giriş yapmıyorsun, abone olmuyorsun.
       </p>
-      <p class="muted">
-        Servislerin parolalarını da saklamaz. Yalnızca "bu hesaba hangi adresle giriyorum" bilgisini
-        tutar; parola yönetimini olduğu yerde bırakır.
+      <p>
+        Servislerin parolalarını da saklamaz. Yalnızca "bu hesaba hangi adresle giriyorum"
+        bilgisini tutar; parola yönetimini olduğu yerde bırakır. Kaynak kodu açık:
+        <a href="https://github.com/tumaysolak/subkill" target="_blank" rel="noopener">github.com/tumaysolak/subkill</a>
       </p>
     </div>
   </section>
 
   <section id="indir" class="section final">
     <h2>Envanterini bugün çıkar</h2>
-    <p class="lede center">Adresini bırak, indirme bağlantısı hemen gelsin.</p>
+    <p class="sub center">Adresini bırak, indirme bağlantısı hemen gelsin.</p>
     <form class="capture center" id="leadForm2" novalidate>
-      <input type="email" name="email" placeholder="calisma@adresin.com" autocomplete="email" required />
+      <input type="email" name="email" placeholder="E-posta adresin" autocomplete="email" required />
       <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
-      <button type="submit">Ücretsiz indir</button>
+      <button type="submit">İndirme bağlantısını gönder</button>
     </form>
-    <div class="form-note center" id="formNote2">macOS 12+ ve Windows 10+ · yaklaşık 95 MB</div>
+    <div class="form-note center" id="formNote2">macOS 12+ ve Windows 10+ · Apple Silicon ve Intel</div>
   </section>
 </main>
 
 <footer>
   <div class="foot-inner">
-    <span>SubKill</span>
+    <span class="foot-brand">SubKill</span>
     <span class="muted">Aboneliklerini gör, gereksizini kes.</span>
+    <a href="/aydinlatma.html">Aydınlatma metni</a>
+    <a href="https://github.com/tumaysolak/subkill" target="_blank" rel="noopener">GitHub</a>
   </div>
 </footer>
 

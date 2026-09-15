@@ -60,12 +60,14 @@ function forgetPassword(user) {
 function migrateLegacySecret() {
   const accounts = store.get().settings.mailAccounts || [];
 
+  // Kopyalaniyor, tasinmiyor: kullanici bir sebeple eski surume donerse
+  // sifreleri kaybolmasin. Eski dosyalar zararsiz sekilde yerinde kalir.
   for (const a of accounts) {
     const eski = userDataFile(`gmail-${secretTag(a.user)}.secret`);
     const yeni = secretPathFor(a.user);
     try {
-      if (fs.existsSync(eski) && !fs.existsSync(yeni)) fs.renameSync(eski, yeni);
-    } catch (_) { /* tasinamazsa kullanici sifreyi yeniden girer */ }
+      if (fs.existsSync(eski) && !fs.existsSync(yeni)) fs.copyFileSync(eski, yeni);
+    } catch (_) { /* kopyalanamazsa kullanici sifreyi yeniden girer */ }
   }
 
   const legacy = userDataFile('gmail.secret');

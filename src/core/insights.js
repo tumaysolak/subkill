@@ -36,7 +36,6 @@ function summary(subs, opts = {}) {
   let monthly = 0;
   let yearly = 0;
   const byCategory = {};
-  const byCard = {};
   const byCurrency = {};
 
   for (const s of active) {
@@ -46,9 +45,6 @@ function summary(subs, opts = {}) {
 
     const cat = s.category || 'diger';
     byCategory[cat] = (byCategory[cat] || 0) + m;
-
-    const card = s.cardLast4 || 'bilinmiyor';
-    byCard[card] = (byCard[card] || 0) + m;
 
     const cur = s.currency || 'USD';
     byCurrency[cur] = (byCurrency[cur] || 0) + money.monthlyAmount(s);
@@ -61,7 +57,6 @@ function summary(subs, opts = {}) {
     monthly,
     yearly,
     byCategory,
-    byCard,
     byCurrency
   };
 }
@@ -163,51 +158,36 @@ function monthKey(date) {
 }
 
 /**
- * Belirli bir ayda her karttan cikacak toplam. Limit tanimliysa asim uyarisi uretir.
- * Yillik abonelikler sadece yenileme aylarinda sayilir; aylik olanlar her ay.
+ * Sessiz iptaller: yenileme tarihi gecmis ama yeni makbuz gelmemis abonelikler.
+ *
+ * Iptal maili her zaman gelmez ya da posta kutusunda bulunamaz. Bu durumda
+ * tek kanit, beklenen yenilemenin gerceklesmemis olmasidir. Yanlis alarm
+ * vermemek icin donem uzunlugu kadar ek sure taninir: aylik abonelikte
+ * yenileme uzerinden 45 gun, yillik abonelikte 400 gun gecmis olmali.
  */
-function cardLoad(subs, cards = [], opts = {}) {
-  const rates = opts.rates;
-  const base = opts.base || 'TRY';
-  const target = opts.month || monthKey(today(opts.now));
-  const loads = {};
+function silentlyEnded(subs, opts = {}) {
+  const now = today(opts.now);
+  const GRACE = { monthly: 45, weekly: 21, quarterly: 120, yearly: 400, usage: 60, onetime: null };
 
-  for (const s of (subs || []).filter(isActive)) {
-    const card = s.cardLast4 || 'bilinmiyor';
-    let amount = 0;
-    if (s.cycle === 'monthly' || s.cycle === 'usage' || s.cycle === 'weekly') {
-      amount = money.monthlyIn(s, base, rates);
-    } else if (s.nextRenewal && monthKey(new Date(s.nextRenewal + 'T00:00:00Z')) === target) {
-      amount = money.convert(Number(s.amount) || 0, s.currency || 'USD', base, rates);
-    }
-    if (amount <= 0) continue;
-    loads[card] = loads[card] || { last4: card, total: 0, items: [] };
-    loads[card].total += amount;
-    loads[card].items.push({ sub: s, amount });
-  }
-
-  // Kullanici bir kart tanimladiysa, o ay hic yuku olmasa da tabloda gorunsun.
-  for (const c of cards || []) {
-    if (c.last4 && !loads[c.last4]) loads[c.last4] = { last4: c.last4, total: 0, items: [] };
-  }
-
-  return Object.values(loads).map((l) => {
-    const meta = (cards || []).find((c) => c.last4 === l.last4);
-    const limit = meta && Number(meta.monthlyLimit) > 0 ? Number(meta.monthlyLimit) : null;
-    const usage = limit ? l.total / limit : null;
+  return (subs || []).filter(isActive).map((s) => {
+    const grace = GRACE[s.cycle];
+    if (!grace) return null;
+    // Son kanit: varsa son makbuz, yoksa beklenen yenileme tarihi.
+    const anchor = s.lastCharge || s.nextRenewal;
+    if (!anchor) return null;
+    const since = daysBetween(new Date(anchor + 'T00:00:00Z'), now);
+    if (since < grace) return null;
     return {
-      ...l,
-      label: meta ? meta.label : '',
-      limit,
-      usageRatio: usage,
-      warning: usage !== null && usage >= 0.8,
-      over: usage !== null && usage > 1
+      sub: s,
+      daysSince: since,
+      anchor,
+      yearly: money.yearlyIn(s, opts.base || 'TRY', opts.rates)
     };
-  }).sort((a, b) => b.total - a.total);
+  }).filter(Boolean).sort((a, b) => b.daysSince - a.daysSince);
 }
 
 /** Tum uyarilari tek listede, onceligine gore siralar. */
-function alerts(subs, cards, opts = {}) {
+function alerts(subs, opts = {}) {
   const base = opts.base || 'TRY';
   const out = [];
 
@@ -221,22 +201,15 @@ function alerts(subs, cards, opts = {}) {
     });
   }
 
-  for (const c of cardLoad(subs, cards, opts)) {
-    if (c.over) {
-      out.push({
-        level: 'kritik',
-        type: 'kart',
-        title: `${c.last4} kartında limit aşımı riski`,
-        detail: `Bu ay ${money.formatMoney(c.total, base)} düşecek, limit ${money.formatMoney(c.limit, base)}.`
-      });
-    } else if (c.warning) {
-      out.push({
-        level: 'uyari',
-        type: 'kart',
-        title: `${c.last4} kartı limitinin %${Math.round(c.usageRatio * 100)}'inde`,
-        detail: `Bu ay ${money.formatMoney(c.total, base)} düşecek.`
-      });
-    }
+
+  for (const e of silentlyEnded(subs, opts)) {
+    out.push({
+      level: 'uyari',
+      type: 'sessiz-iptal',
+      title: `${e.sub.name} yenilenmemiş görünüyor`,
+      detail: `Son hareket ${e.daysSince} gün önce (${e.anchor}). Beklenen yenileme gelmediğine göre abonelik bitmiş olabilir; listeden düşürmek için kontrol et.`,
+      sub: e.sub
+    });
   }
 
   for (const d of dormant(subs, opts.dormantDays || 60, opts)) {
@@ -265,7 +238,7 @@ function alerts(subs, cards, opts = {}) {
       level: 'bilgi',
       type: 'yenileme',
       title: `${u.sub.name} ${u.inDays} gün içinde yenileniyor`,
-      detail: `${money.formatMoney(u.sub.amount, u.sub.currency)} ${u.sub.cardLast4 ? `· ${u.sub.cardLast4} karti` : ''}`.trim(),
+      detail: money.formatMoney(u.sub.amount, u.sub.currency),
       sub: u.sub
     });
   }
@@ -318,5 +291,5 @@ function calendar(subs, months = 12, opts = {}) {
 
 module.exports = {
   daysBetween, daysUntil, isActive, summary, upcoming, trialsEnding,
-  overlaps, dormant, cardLoad, alerts, calendar, monthKey
+  overlaps, dormant, silentlyEnded, alerts, calendar, monthKey
 };

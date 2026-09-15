@@ -6,7 +6,9 @@ const parser = require('../core/parser');
 
 const GMAIL_QUERY_TERMS = [
   'receipt', 'invoice', 'subscription', 'renewal', 'payment received',
-  'your plan', 'fatura', 'makbuz', 'abonelik', 'yenileme'
+  'your plan', 'fatura', 'makbuz', 'abonelik', 'yenileme',
+  // Iptal bildirimleri makbuz gibi gorunmedigi icin ayrica aranir.
+  'cancelled', 'canceled', 'cancellation', 'sorry to see you go', 'iptal edildi'
 ];
 
 /**
@@ -50,7 +52,7 @@ function sinceDate(days) {
 async function scan(opts) {
   const { user, appPassword, lookbackDays = 400, onProgress, maxMessages = 1200 } = opts;
   const client = await connect({ user, appPassword });
-  const report = { scanned: 0, matched: 0, records: [], errors: [] };
+  const report = { scanned: 0, matched: 0, records: [], cancellations: [], errors: [] };
 
   try {
     const lock = await client.getMailboxLock('[Gmail]/All Mail').catch(() => client.getMailboxLock('INBOX'));
@@ -84,7 +86,19 @@ async function scan(opts) {
             date: mail.date || null,
             text: mail.text || stripHtml(mail.html || '')
           });
-          if (record) { report.matched++; report.records.push(record); }
+          if (record) {
+            report.matched++;
+            report.records.push(record);
+          } else {
+            // Makbuz degilse iptal bildirimi olabilir.
+            const cancel = parser.parseCancellation({
+              from: (mail.from && mail.from.text) || '',
+              subject: mail.subject || '',
+              date: mail.date || null,
+              text: mail.text || stripHtml(mail.html || '')
+            });
+            if (cancel) report.cancellations.push(cancel);
+          }
         } catch (err) {
           report.errors.push(String(err.message || err));
         }

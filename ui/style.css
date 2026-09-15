@@ -269,3 +269,16 @@ input::placeholder { color: var(--muted); }
   background: var(--surface-2); border: 1px solid var(--border);
   font-variant-numeric: tabular-nums; letter-spacing: .5px; white-space: nowrap;
 }
+
+/* ---------- gmail hesap satirlari ---------- */
+
+.acct-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-top: 1px solid var(--border);
+}
+.acct-row:first-child { border-top: 0; }
+.acct-mail { flex: 1; min-width: 0; }
+.acct-mail .row-name { word-break: break-all; }
+
+.switch { display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 14px; }
+.switch input { width: 16px; height: 16px; accent-color: var(--kill); }

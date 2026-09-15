@@ -6,15 +6,16 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('subkill', {
   getState: () => ipcRenderer.invoke('state:get'),
   saveSettings: (patch) => ipcRenderer.invoke('settings:save', patch),
-  saveCards: (cards) => ipcRenderer.invoke('cards:save', cards),
 
   upsertSubscription: (sub) => ipcRenderer.invoke('sub:upsert', sub),
   removeSubscription: (id) => ipcRenderer.invoke('sub:remove', id),
 
-  gmailTest: (creds) => ipcRenderer.invoke('gmail:test', creds),
-  gmailScan: (creds) => ipcRenderer.invoke('gmail:scan', creds),
-  gmailApply: (records) => ipcRenderer.invoke('gmail:apply', records),
-  hasGmailPassword: () => ipcRenderer.invoke('gmail:hasPassword'),
+  gmailAccounts: () => ipcRenderer.invoke('gmail:accounts'),
+  gmailAddAccount: (creds) => ipcRenderer.invoke('gmail:addAccount', creds),
+  gmailRemoveAccount: (user) => ipcRenderer.invoke('gmail:removeAccount', user),
+  gmailScan: (opts) => ipcRenderer.invoke('gmail:scan', opts),
+  gmailApply: (payload) => ipcRenderer.invoke('gmail:apply', payload),
+  runAutoScan: () => ipcRenderer.invoke('autoscan:run'),
 
   scanUsage: () => ipcRenderer.invoke('usage:scan'),
   refreshRates: () => ipcRenderer.invoke('fx:refresh'),
@@ -30,5 +31,11 @@ contextBridge.exposeInMainWorld('subkill', {
     const handler = (_e, payload) => cb(payload);
     ipcRenderer.on('scan:progress', handler);
     return () => ipcRenderer.removeListener('scan:progress', handler);
+  },
+
+  onAutoScan: (cb) => {
+    const handler = (_e, payload) => cb(payload);
+    ipcRenderer.on('autoscan:done', handler);
+    return () => ipcRenderer.removeListener('autoscan:done', handler);
   }
 });

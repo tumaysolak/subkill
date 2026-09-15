@@ -88,3 +88,37 @@ test('bozuk dosya uygulamayi kilitlemez', () => {
     if (f.startsWith(path.basename(file) + '.bozuk-')) fs.unlinkSync(path.join(os.tmpdir(), f));
   }
 });
+
+/* ---------------- gmail hesaplari ve iptal ---------------- */
+
+test('birden fazla gmail hesabi eklenip kaldirilabilir', () => {
+  const { store } = tmpStore();
+  store.addGmailAccount('BiRi@Gmail.com');
+  store.addGmailAccount('ikinci@gmail.com');
+  store.addGmailAccount('biri@gmail.com'); // ayni adres tekrar eklenmemeli
+  assert.deepStrictEqual(
+    store.get().settings.gmailAccounts.map((a) => a.user),
+    ['biri@gmail.com', 'ikinci@gmail.com']
+  );
+  store.removeGmailAccount('biri@gmail.com');
+  assert.deepStrictEqual(store.get().settings.gmailAccounts.map((a) => a.user), ['ikinci@gmail.com']);
+});
+
+test('iptal bildirimi aboneligi iptal olarak isaretler', () => {
+  const { store } = tmpStore();
+  store.upsertSubscription({ name: 'Runway', amount: 35, currency: 'USD', cycle: 'monthly', status: 'active', lastCharge: '2026-08-01' });
+  const applied = store.applyCancellations([{ name: 'runway', cancelledAt: '2026-09-10', evidence: 'cancelled' }]);
+  assert.strictEqual(applied.length, 1);
+  const sub = store.get().subscriptions.find((s) => s.name === 'Runway');
+  assert.strictEqual(sub.status, 'cancelled');
+  assert.strictEqual(sub.cancelledAt, '2026-09-10');
+});
+
+test('son makbuzdan eski iptal maili yok sayilir', () => {
+  const { store } = tmpStore();
+  // Kullanici iptal etmis, sonra tekrar abone olmus: iptal maili eski kalir.
+  store.upsertSubscription({ name: 'Runway', amount: 35, currency: 'USD', cycle: 'monthly', status: 'active', lastCharge: '2026-09-01' });
+  const applied = store.applyCancellations([{ name: 'Runway', cancelledAt: '2026-06-10' }]);
+  assert.strictEqual(applied.length, 0, 'eski iptal maili uygulandi');
+  assert.strictEqual(store.get().subscriptions[0].status, 'active');
+});

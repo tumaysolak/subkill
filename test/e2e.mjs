@@ -43,7 +43,7 @@ await step('ilk acilista kurulum rehberi cikiyor', async () => {
   const title = await win.locator('.modal h3').innerText();
   assert.match(title, /SubKill ne işe yarar/, 'rehberin ilk adimi gorunmuyor');
   const dots = await win.locator('.wizard-dots span').count();
-  assert.strictEqual(dots, 4, `4 adim bekleniyordu, ${dots} bulundu`);
+  assert.strictEqual(dots, 3, `3 adim bekleniyordu, ${dots} bulundu`);
 });
 
 await step('rehberde ileri gidilebiliyor ve gmail adimi anlatiliyor', async () => {
@@ -122,39 +122,39 @@ await step('takvim sekmesi 12 ay ciziyor', async () => {
   assert.strictEqual(rows, 12, `12 ay bekleniyordu, ${rows} bulundu`);
 });
 
-await step('kartlar sekmesinde elle kart ekleme yok, makbuzdan geleni anlatiyor', async () => {
-  await win.click('#nav button[data-view="kartlar"]');
-  await win.waitForSelector('.panel', { timeout: 5000 });
-
-  const addBtn = await win.locator('button:has-text("Kart ekle")').count();
-  assert.strictEqual(addBtn, 0, 'elle kart ekleme dugmesi hala duruyor');
-
-  const text = await win.locator('#view').innerText();
-  assert.match(text, /son d\u00f6rt hanes/i, 'kartlarin makbuzdan geldigi anlatilmiyor');
-  assert.match(text, /bankan\u0131za ba\u011flanmaz/i, 'banka baglantisi olmadigi yazmiyor');
-  assert.match(text, /Gmail taramas\u0131/i, 'kart yoksa ne yapilacagi yazmiyor');
-});
-
-await step('etiket ve limit alanlari makbuzdaki karta bagli aciliyor', async () => {
-  const rows = await win.locator('.card-digits').count();
-  const emptyMsg = await win.locator('#view .empty').count();
-  assert.ok(rows > 0 || emptyMsg > 0, 'ne kart satiri ne de bos durum mesaji var');
-});
-
-await step('tarama sekmesi gmail alanlarini gosteriyor', async () => {
+await step('tarama sekmesi coklu gmail hesabini gosteriyor', async () => {
   await win.click('#nav button[data-view="tarama"]');
   await win.waitForSelector('input[type="password"]', { timeout: 5000 });
   const text = await win.locator('#view').innerText();
+  assert.match(text, /Bağlı Gmail hesapları/i, 'hesap listesi paneli yok');
+  assert.match(text, /istediğiniz kadar hesap/i, 'coklu hesap anlatilmiyor');
   assert.match(text, /uygulama şifresi/i);
 });
 
-await step('eksik sifreyle tarama anlasilir hata veriyor', async () => {
-  await win.fill('.form-grid input[type="text"]', 'ornek@gmail.com');
-  await win.click('button:has-text("Bağlantıyı test et")');
-  await win.waitForSelector('.toast:not([hidden])', { timeout: 30000 });
-  const toast = await win.locator('#toast').innerText();
-  assert.ok(toast.length > 5, 'hata mesaji bos');
-  assert.ok(!/undefined|\[object/i.test(toast), `ham hata sizdi: ${toast}`);
+await step('hesap yokken tarama dugmesi kapali', async () => {
+  const disabled = await win.locator('#btnScan').isDisabled();
+  assert.strictEqual(disabled, true, 'hesap yokken tarama dugmesi acik kalmis');
+});
+
+await step('kartlar sekmesi tamamen kaldirildi', async () => {
+  const navCards = await win.locator('#nav button[data-view="kartlar"]').count();
+  assert.strictEqual(navCards, 0, 'Kartlar sekmesi hala duruyor');
+});
+
+await step('ayarlarda otomatik tarama bolumu var', async () => {
+  await win.click('#nav button[data-view="ayarlar"]');
+  // Gorunum degisimini beklemek icin bu sekmeye ozgu bir ogeyi bekle.
+  await win.waitForSelector('.switch input[type="checkbox"]', { timeout: 6000 });
+  // DIKKAT: innerText, CSS text-transform:uppercase'i uygular ve Turkce'de
+  // "ı" harfi "I" olur; buyuk/kucuk harf duyarsiz eslesme tutmaz. Bu yuzden
+  // etiketlerin gercek metni (textContent) okunuyor.
+  const text = await win.locator('#view').innerText();
+  assert.match(text, /Otomatik tarama/i, 'otomatik tarama paneli yok');
+  const labels = await win.locator('#view label').evaluateAll((els) => els.map((e) => e.textContent));
+  assert.ok(labels.some((l) => /Tarama aralığı/.test(l)), 'tarama araligi alani yok');
+  assert.ok(labels.some((l) => /Geriye dönük bakılan gün/.test(l)), 'geriye donus alani yok');
+  const checked = await win.locator('.switch input[type="checkbox"]').isChecked();
+  assert.strictEqual(checked, true, 'otomatik tarama varsayilan olarak kapali');
 });
 
 await step('ayarlar sekmesi kur alanlarini gosteriyor', async () => {

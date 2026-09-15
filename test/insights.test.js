@@ -9,12 +9,12 @@ const RATES = { TRY: 1, USD: 40, EUR: 44, GBP: 50 };
 const OPTS = { now: NOW, rates: RATES, base: 'TRY' };
 
 const subs = [
-  { id: '1', name: 'Anthropic Claude', amount: 200, currency: 'USD', cycle: 'monthly', status: 'active', category: 'llm_chat', cardLast4: '2559', nextRenewal: '2026-09-30', lastUsedAt: '2026-09-13' },
-  { id: '2', name: 'OpenAI ChatGPT', amount: 20, currency: 'USD', cycle: 'monthly', status: 'active', category: 'llm_chat', cardLast4: '2559', nextRenewal: '2026-09-20', lastUsedAt: '2026-04-01' },
-  { id: '3', name: 'Notion', amount: 120, currency: 'USD', cycle: 'yearly', status: 'active', category: 'verimlilik', cardLast4: '1187', nextRenewal: '2026-09-18', lastUsedAt: '2026-09-10' },
-  { id: '4', name: 'Runway', amount: 35, currency: 'USD', cycle: 'monthly', status: 'active', category: 'video', cardLast4: '1187', nextRenewal: '2026-10-05', lastUsedAt: '2026-01-05' },
-  { id: '5', name: 'Eski Servis', amount: 15, currency: 'USD', cycle: 'monthly', status: 'cancelled', category: 'diger', cardLast4: '2559' },
-  { id: '6', name: 'ManyChat', amount: 15, currency: 'USD', cycle: 'monthly', status: 'trial', category: 'otomasyon', cardLast4: '2559', trialEndsAt: '2026-09-17' }
+  { id: '1', name: 'Anthropic Claude', amount: 200, currency: 'USD', cycle: 'monthly', status: 'active', category: 'llm_chat', nextRenewal: '2026-09-30', lastUsedAt: '2026-09-13' },
+  { id: '2', name: 'OpenAI ChatGPT', amount: 20, currency: 'USD', cycle: 'monthly', status: 'active', category: 'llm_chat', nextRenewal: '2026-09-20', lastUsedAt: '2026-04-01' },
+  { id: '3', name: 'Notion', amount: 120, currency: 'USD', cycle: 'yearly', status: 'active', category: 'verimlilik', nextRenewal: '2026-09-18', lastUsedAt: '2026-09-10' },
+  { id: '4', name: 'Runway', amount: 35, currency: 'USD', cycle: 'monthly', status: 'active', category: 'video', nextRenewal: '2026-10-05', lastUsedAt: '2026-01-05' },
+  { id: '5', name: 'Eski Servis', amount: 15, currency: 'USD', cycle: 'monthly', status: 'cancelled', category: 'diger' },
+  { id: '6', name: 'ManyChat', amount: 15, currency: 'USD', cycle: 'monthly', status: 'trial', category: 'otomasyon', trialEndsAt: '2026-09-17' }
 ];
 
 test('summary: iptal edilmis abonelik toplama girmez', () => {
@@ -24,14 +24,6 @@ test('summary: iptal edilmis abonelik toplama girmez', () => {
   // 200 + 20 + 35 + 15 = 270 USD aylik + Notion 120/12 = 10 USD => 280 USD * 40 = 11200
   assert.strictEqual(Math.round(s.monthly), 11200);
   assert.strictEqual(Math.round(s.yearly), 134400);
-});
-
-test('summary: kart dagilimi dogru', () => {
-  const s = insights.summary(subs, OPTS);
-  // 2559: 200 + 20 + 15 = 235 USD -> 9400
-  assert.strictEqual(Math.round(s.byCard['2559']), 9400);
-  // 1187: 35 + 10 = 45 USD -> 1800
-  assert.strictEqual(Math.round(s.byCard['1187']), 1800);
 });
 
 test('upcoming: 30 gun icindekiler tarihe gore sirali', () => {
@@ -70,22 +62,8 @@ test('dormant: 60 gundur girilmeyenler onceliklendirilir', () => {
   assert.strictEqual(d[0].priority, 'yuksek');
 });
 
-test('cardLoad: yillik kalem sadece yenileme ayinda sayilir', () => {
-  const load = insights.cardLoad(subs, [{ last4: '1187', label: 'Ikinci kart', monthlyLimit: 2000 }], { ...OPTS, month: '2026-09' });
-  const c1187 = load.find((c) => c.last4 === '1187');
-  // Runway 35*40=1400 + Notion yillik 120*40=4800 (Eylul'de yenileniyor) = 6200
-  assert.strictEqual(Math.round(c1187.total), 6200);
-  assert.strictEqual(c1187.over, true);
-});
-
-test('cardLoad: yenileme ayi disinda yillik kalem dusmez', () => {
-  const load = insights.cardLoad(subs, [], { ...OPTS, month: '2026-11' });
-  const c1187 = load.find((c) => c.last4 === '1187');
-  assert.strictEqual(Math.round(c1187.total), 1400);
-});
-
 test('alerts: kritik uyarilar en uste gelir', () => {
-  const a = insights.alerts(subs, [{ last4: '1187', monthlyLimit: 2000 }], OPTS);
+  const a = insights.alerts(subs, OPTS);
   assert.ok(a.length > 0);
   assert.strictEqual(a[0].level, 'kritik');
   assert.ok(a.some((x) => x.type === 'deneme'));

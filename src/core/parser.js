@@ -208,6 +208,84 @@ function serviceFromSubject(subject) {
   return null;
 }
 
+
+/* ---------------- iptal tespiti ---------------- */
+
+/**
+ * Iptal/sonlandirma bildirimlerini tanir.
+ *
+ * Makbuz gibi gormedigi icin parseReceipt bunlari kaciriyordu: iptal
+ * maillerinde genelde tutar yok. Burada ayri bir kontrol var. Yalniz
+ * "iptal edebilirsiniz" gibi pazarlama cumlelerini iptal saymamak icin
+ * kalip listesi dar tutuldu ve olumsuzlama filtreleri eklendi.
+ */
+const CANCEL_PATTERNS = [
+  /\b(your|the)\s+(subscription|plan|membership)\s+(has been|was|is)\s+(cancell?ed|canceled|terminated|ended)\b/i,
+  /\bsubscription\s+cancell?ation\s+(confirmed|confirmation|complete)\b/i,
+  /\b(we'?re|we are)\s+sorry\s+to\s+see\s+you\s+go\b/i,
+  /\byour\s+(subscription|plan)\s+will\s+not\s+renew\b/i,
+  /\bauto[- ]?renew(al)?\s+(has been\s+)?(turned\s+off|disabled|cancell?ed)\b/i,
+  /\bcancell?ation\s+(confirmation|receipt)\b/i,
+  /\brefund(ed)?\s+(your|the)\s+(payment|subscription|purchase)\b/i,
+  /\bacconelig[iı]niz\s+(iptal\s+edildi|sonland[iı]r[iı]ld[iı])\b/i,
+  /\baboneli[gğ]iniz\s+(iptal\s+edildi|sonland[iı]r[iı]ld[iı]|sona\s+erdi)\b/i,
+  /\biptal\s+(talebiniz|i[sş]leminiz)\s+(al[iı]nd[iı]|tamamland[iı]|onayland[iı])\b/i,
+  /\büyeli[gğ]iniz\s+(iptal\s+edildi|sonland[iı]r[iı]ld[iı])\b/i
+];
+
+// Bu kaliplar gecen mailler iptal bildirimi degildir; pazarlama ya da
+// "istediginiz zaman iptal edebilirsiniz" gibi bilgilendirme cumleleridir.
+const NOT_CANCEL_PATTERNS = [
+  /\bcancel\s+(any\s*time|anytime|at\s+any\s+time)\b/i,
+  /\byou\s+can\s+cancel\b/i,
+  /\bto\s+cancel[, ]/i,
+  /\bistedi[gğ]iniz\s+(zaman|an)\s+iptal\b/i,
+  /\biptal\s+etmek\s+i[cç]in\b/i
+];
+
+/**
+ * @returns {null|{name:string, cancelledAt:string|null, evidence:string}}
+ */
+function parseCancellation(mail) {
+  if (!mail) return null;
+  const subject = mail.subject || '';
+  const body = mail.text || '';
+  const haystack = `${subject}\n${body}`.slice(0, 6000);
+
+  const hit = CANCEL_PATTERNS.find((re) => re.test(haystack));
+  if (!hit) return null;
+  if (NOT_CANCEL_PATTERNS.some((re) => re.test(haystack))) return null;
+
+  const fromDomain = domainOf(mail.from);
+  let entry = catalog.lookup(fromDomain);
+  let name = entry ? entry.name : null;
+
+  if (!name || catalog.isPaymentProcessor(fromDomain)) {
+    const bySubject = serviceFromSubject(subject);
+    if (bySubject) {
+      const hit2 = catalog.lookup(bySubject);
+      name = hit2 ? hit2.name : bySubject;
+    }
+  }
+  if (!name) {
+    const inBody = catalog.lookup(body.slice(0, 4000));
+    if (inBody) name = inBody.name;
+  }
+  if (!name) {
+    if (!fromDomain || catalog.isPaymentProcessor(fromDomain)) return null;
+    name = fromDomain.replace(/\.(com|net|org|io|ai|dev|app|co|tech|me)(\.[a-z]{2})?$/, '');
+    name = name.split('.').pop();
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+  }
+
+  const d = mail.date ? new Date(mail.date) : null;
+  return {
+    name,
+    cancelledAt: d && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : null,
+    evidence: (haystack.match(hit) || [''])[0].slice(0, 160)
+  };
+}
+
 /**
  * Tek bir maili abonelik kaydina cevirir.
  * @param {{from:string, subject:string, date:string|Date, text:string, to?:string}} mail
@@ -298,6 +376,7 @@ function consolidate(records) {
 }
 
 module.exports = {
+  parseCancellation,
   domainOf, looksLikeReceipt, extractAmounts, pickAmount, detectCycle,
   detectCardLast4, parseDateFrom, detectNextRenewal, detectTrialEnd,
   addMonths, projectRenewal, serviceFromSubject, parseReceipt, consolidate

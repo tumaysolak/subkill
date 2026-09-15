@@ -10,11 +10,14 @@ const EMPTY = {
     base: 'TRY',
     rates: { TRY: 1, USD: 48.6, EUR: 56.1, GBP: 65.7 },
     ratesUpdatedAt: null,
-    gmailUser: '',
+    gmailAccounts: [],
+    autoScan: true,
+    autoScanEveryHours: 24,
+    autoScanLookbackDays: 14,
+    lastAutoScanAt: null,
     dormantDays: 60,
     lookbackDays: 400
   },
-  cards: [],
   subscriptions: [],
   scans: []
 };
@@ -38,6 +41,13 @@ class Store {
         ...parsed,
         settings: { ...EMPTY.settings, ...(parsed.settings || {}) }
       };
+      // Eski surumde tek bir gmailUser vardi; listeye tasiniyor.
+      const st = this.data.settings;
+      if (!Array.isArray(st.gmailAccounts)) st.gmailAccounts = [];
+      if (st.gmailUser && !st.gmailAccounts.some((a) => a.user === st.gmailUser)) {
+        st.gmailAccounts.push({ user: st.gmailUser, addedAt: new Date().toISOString() });
+      }
+      delete st.gmailUser;
     } catch (err) {
       if (err.code !== 'ENOENT') {
         // Bozuk dosyayi ezme; yedekle ve temiz basla.
@@ -111,6 +121,53 @@ class Store {
    * Elle girilen alanlar (loginMethod, loginEmail, notes, monthlyLimit) korunur;
    * tarama sadece para/tarih/kart alanlarini tazeler.
    */
+  /* ---------------- gmail hesaplari ---------------- */
+
+  addGmailAccount(user) {
+    const d = this.get();
+    const addr = String(user || '').trim().toLowerCase();
+    if (!addr) return d.settings.gmailAccounts;
+    if (!d.settings.gmailAccounts.some((a) => a.user === addr)) {
+      d.settings.gmailAccounts.push({ user: addr, addedAt: new Date().toISOString() });
+      this.save();
+    }
+    return d.settings.gmailAccounts;
+  }
+
+  removeGmailAccount(user) {
+    const d = this.get();
+    const addr = String(user || '').trim().toLowerCase();
+    d.settings.gmailAccounts = d.settings.gmailAccounts.filter((a) => a.user !== addr);
+    this.save();
+    return d.settings.gmailAccounts;
+  }
+
+  /**
+   * Iptal bildirimlerini uygular.
+   *
+   * Onemli: iptal maili, o servisin en son makbuzundan ESKIYSE yok sayilir.
+   * Aksi halde iptal edip sonra tekrar abone olunan bir servis yanlislikla
+   * iptal gorunur.
+   */
+  applyCancellations(cancellations) {
+    const d = this.get();
+    const applied = [];
+    for (const c of cancellations || []) {
+      const sub = d.subscriptions.find(
+        (s) => s.name.toLowerCase() === String(c.name).toLowerCase()
+      );
+      if (!sub || sub.status === 'cancelled') continue;
+      if (c.cancelledAt && sub.lastCharge && c.cancelledAt < sub.lastCharge) continue;
+      sub.status = 'cancelled';
+      sub.cancelledAt = c.cancelledAt || new Date().toISOString().slice(0, 10);
+      sub.cancelEvidence = c.evidence || '';
+      sub.updatedAt = new Date().toISOString();
+      applied.push({ name: sub.name, at: sub.cancelledAt });
+    }
+    if (applied.length) this.save();
+    return applied;
+  }
+
   mergeScanned(records) {
     const d = this.get();
     const result = { added: 0, updated: 0, items: [] };
@@ -144,12 +201,7 @@ class Store {
     return result;
   }
 
-  setCards(cards) {
-    const d = this.get();
-    d.cards = cards || [];
-    this.save();
-    return d.cards;
-  }
+
 
   /** Tarayici gecmisinden gelen son kullanim tarihlerini isler. */
   applyUsage(usageByDomain) {

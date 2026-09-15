@@ -121,3 +121,48 @@ test('consolidate: ayni servisin makbuzlari birlesir, en yeni kazanir', () => {
   assert.strictEqual(out[0].cardLast4, '1187');
   assert.strictEqual(out[0].chargeCount, 2);
 });
+
+/* ---------------- iptal tespiti ---------------- */
+
+test('iptal bildirimi taninir ve servis adi cikarilir', () => {
+  const r = parser.parseCancellation({
+    from: 'billing@runwayml.com',
+    subject: 'Your subscription has been cancelled',
+    text: 'Hi, your Runway subscription has been cancelled. No further charges.',
+    date: new Date('2026-09-10T10:00:00Z')
+  });
+  assert.ok(r, 'iptal taninmadi');
+  assert.strictEqual(r.name, 'Runway');
+  assert.strictEqual(r.cancelledAt, '2026-09-10');
+});
+
+test('Turkce iptal bildirimi taninir', () => {
+  const r = parser.parseCancellation({
+    from: 'no-reply@spotify.com',
+    subject: 'Aboneliğiniz iptal edildi',
+    text: 'Spotify aboneliğiniz iptal edildi.',
+    date: new Date('2026-08-01T00:00:00Z')
+  });
+  assert.ok(r);
+  assert.strictEqual(r.name, 'Spotify');
+});
+
+test('"istediginiz zaman iptal edebilirsiniz" iptal sayilmaz', () => {
+  const r = parser.parseCancellation({
+    from: 'team@makenotion.com',
+    subject: 'Notion aboneliğiniz başladı',
+    text: 'Aboneliğiniz iptal edildi demiyoruz; istediğiniz zaman iptal edebilirsiniz.',
+    date: new Date()
+  });
+  assert.strictEqual(r, null, 'pazarlama cumlesi iptal sayildi');
+});
+
+test('makbuz maili iptal olarak isaretlenmez', () => {
+  const r = parser.parseCancellation({
+    from: 'billing@apify.com',
+    subject: 'Receipt from Apify',
+    text: 'Total 49.00 USD paid on Sep 1, 2026.',
+    date: new Date()
+  });
+  assert.strictEqual(r, null);
+});

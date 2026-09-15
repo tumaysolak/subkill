@@ -113,7 +113,7 @@ function setView(view) {
   }
   const titles = {
     panel: 'Panel', abonelikler: 'Abonelikler', takvim: 'Yenileme takvimi',
-    kartlar: 'Kartlar', tarama: 'Tarama', ayarlar: 'Ayarlar'
+    tarama: 'Tarama', ayarlar: 'Ayarlar'
   };
   document.getElementById('viewTitle').textContent = titles[view] || view;
   render();
@@ -124,7 +124,7 @@ function render() {
   root.innerHTML = '';
   const fn = {
     panel: viewPanel, abonelikler: viewList, takvim: viewCalendar,
-    kartlar: viewCards, tarama: viewScan, ayarlar: viewSettings
+    tarama: viewScan, ayarlar: viewSettings
   }[currentView];
   root.appendChild(fn());
   root.scrollTop = 0;
@@ -176,14 +176,13 @@ function viewPanel() {
     const t = el('table');
     t.appendChild(el('thead', {}, el('tr', {}, [
       el('th', { text: 'Servis' }), el('th', { text: 'Tarih' }),
-      el('th', { text: 'Kart' }), el('th', { class: 'num', text: 'Tutar' })
+      el('th', { class: 'num', text: 'Tutar' })
     ])));
     const tb = el('tbody');
     for (const u of c.upcoming.slice(0, 12)) {
       tb.appendChild(el('tr', {}, [
         el('td', {}, [el('div', { class: 'row-name', text: u.sub.name })]),
         el('td', { text: `${shortDate(u.sub.nextRenewal)} · ${u.inDays} gün` }),
-        el('td', { text: u.sub.cardLast4 || '—' }),
         el('td', { class: 'num', text: native(u.sub.amount, u.sub.currency) })
       ]));
     }
@@ -290,7 +289,7 @@ function renderTable() {
   t.appendChild(el('thead', {}, el('tr', {}, [
     el('th', { text: 'Servis' }), el('th', { text: 'Periyot' }),
     el('th', { class: 'num', text: 'Tutar' }), el('th', { class: 'num', text: 'Aylık (TL)' }),
-    el('th', { text: 'Yenileme' }), el('th', { text: 'Kart' }),
+    el('th', { text: 'Yenileme' }),
     el('th', { text: 'Son kullanım' }), el('th', { text: 'Durum' })
   ])));
 
@@ -310,7 +309,6 @@ function renderTable() {
       el('td', { class: 'num', text: native(s.amount, s.currency) }),
       el('td', { class: 'num', text: tl(monthlyTl) }),
       el('td', { text: shortDate(s.nextRenewal) }),
-      el('td', { text: s.cardLast4 || '—' }),
       el('td', {}, [idle === null
         ? el('span', { class: 'tag', text: 'bilinmiyor' })
         : el('span', { class: `tag ${idle > (state.settings.dormantDays || 60) ? 'idle' : ''}`, text: `${idle} gün` })]),
@@ -355,7 +353,6 @@ function openSubForm(sub) {
     select('status', 'Durum', Object.entries(STATUS_LABELS)),
     input('nextRenewal', 'Sonraki yenileme', { type: 'date' }),
     input('trialEndsAt', 'Deneme bitişi', { type: 'date' }),
-    input('cardLast4', 'Kart son 4 hane', { placeholder: '2559' }),
     input('billingEmail', 'Fatura hangi adrese geliyor', { placeholder: 'ornek@gmail.com' }),
     select('loginMethod', 'Giriş yöntemi', [
       ['', 'Seçilmedi'], ['google', 'Google ile giriş'], ['apple', 'Apple ile giriş'],
@@ -438,106 +435,6 @@ function viewCalendar() {
   return wrap;
 }
 
-/* ---------------- kartlar ---------------- */
-
-function viewCards() {
-  const wrap = document.createDocumentFragment();
-  const loads = state.computed.cardLoad;
-  // Kart haneleri makbuzlardan gelir; elle kart eklenmez. Burada yalnizca
-  // makbuzlarda gorulen kartlara etiket ve aylik limit yaziliyor.
-  const cards = state.cards.slice();
-  const known = loads.filter((c) => c.last4 && c.last4 !== 'bilinmiyor');
-
-  const panel = el('div', { class: 'panel' }, [
-    el('h3', {}, ['Bu ayki kart yükü', el('small', { text: 'limit yazınca aşım uyarısı verir' })])
-  ]);
-  const body = el('div', { class: 'panel-body tight' });
-
-  if (!loads.length) {
-    body.appendChild(el('div', { class: 'empty', text: 'Henüz kart bilgisi yok. Tarama sekmesinden Gmail makbuzlarını tarayın; kartlar buraya kendiliğinden gelir.' }));
-  } else {
-    const t = el('table');
-    t.appendChild(el('thead', {}, el('tr', {}, [
-      el('th', { text: 'Kart' }), el('th', { text: 'Etiket' }),
-      el('th', { class: 'num', text: 'Bu ay' }), el('th', { class: 'num', text: 'Limit' }),
-      el('th', { text: 'Durum' }), el('th', { class: 'num', text: 'Kalem' })
-    ])));
-    const tb = el('tbody');
-    for (const c of loads) {
-      tb.appendChild(el('tr', {}, [
-        el('td', {}, [el('div', { class: 'row-name', text: c.last4 === 'bilinmiyor' ? 'Kartı belirsiz' : c.last4 })]),
-        el('td', { text: c.label || '—' }),
-        el('td', { class: 'num', text: tl(c.total) }),
-        el('td', { class: 'num', text: c.limit ? tl(c.limit) : '—' }),
-        el('td', {}, [el('span', {
-          class: `tag ${c.over ? 'idle' : c.warning ? 'trial' : 'active'}`,
-          text: c.over ? 'Limit aşılıyor' : c.warning ? `%${Math.round(c.usageRatio * 100)}` : 'Rahat'
-        })]),
-        el('td', { class: 'num', text: String(c.items.length) })
-      ]));
-    }
-    t.appendChild(tb);
-    body.appendChild(t);
-  }
-  panel.appendChild(body);
-  wrap.appendChild(panel);
-
-  const edit = el('div', { class: 'panel' }, [el('h3', {}, ['Etiket ve aylık limit'])]);
-  const editBody = el('div', { class: 'panel-body' });
-  editBody.appendChild(el('div', { class: 'guide' }, [
-    el('p', { class: 'guide-lead' }, [
-      'SubKill bankanıza bağlanmaz ve kart numarası istemez. Kartın ',
-      el('strong', { text: 'son dört hanesi' }),
-      ' makbuzlardan kendiliğinden okunur; amacı ödeme yapmak değil, hangi aboneliğin hangi karttan çıktığını gruplamak. ',
-      'Burada yapmanız gereken tek şey kartı tanımak için bir etiket vermek ve isterseniz aylık limit yazmak.'
-    ]),
-    el('div', { class: 'guide-note' }, [
-      el('strong', { text: 'Limit ne işe yarar: ' }),
-      'Yazarsanız o karttan bu ay çıkacak toplam, limitin yüzde 80\'ini geçtiğinde uyarı, limiti aşınca kırmızı işaret görürsünüz. ',
-      'Boş bırakırsanız sadece toplam gösterilir. Yıllık abonelikler yalnızca yenilendikleri ayda sayılır, o yüzden bir kartın yükü aydan aya değişir.'
-    ])
-  ]));
-
-  if (!known.length) {
-    editBody.appendChild(el('div', { class: 'empty', text: 'Makbuzlarda henüz kart hanesi görünmedi. Gmail taraması yaptıktan sonra kartlarınız burada listelenir.' }));
-  } else {
-    const list = el('div');
-    for (const c of known) {
-      const meta = cards.find((x) => x.last4 === c.last4) || { last4: c.last4, label: '', monthlyLimit: 0 };
-      if (!cards.includes(meta)) cards.push(meta);
-      list.appendChild(el('div', { class: 'filters' }, [
-        el('div', { class: 'card-digits', text: `•••• ${c.last4}` }),
-        el('input', {
-          type: 'text', class: 'grow', value: meta.label || '',
-          placeholder: 'Etiket (ana kart, iş kartı...)',
-          oninput: (e) => { meta.label = e.target.value; }
-        }),
-        el('input', {
-          type: 'number', value: meta.monthlyLimit || '',
-          placeholder: 'Aylık limit (TL)',
-          oninput: (e) => { meta.monthlyLimit = Number(e.target.value) || 0; }
-        })
-      ]));
-    }
-    editBody.appendChild(list);
-    editBody.appendChild(el('div', { class: 'filters', style: 'margin-top:12px' }, [
-      el('button', {
-        class: 'primary',
-        text: 'Kaydet',
-        onclick: async () => {
-          await refresh(await api.saveCards(cards.filter((c) => c.last4)));
-          toast('Kaydedildi.', 'ok');
-        }
-      })
-    ]));
-  }
-
-  edit.appendChild(editBody);
-  wrap.appendChild(edit);
-
-  return wrap;
-}
-
 /* ---------------- ilk kurulum rehberi ---------------- */
 
 /**
@@ -549,12 +446,12 @@ const ONBOARD_STEPS = [
   {
     title: 'SubKill ne işe yarar',
     build: () => el('div', { class: 'guide' }, [
-      el('p', { class: 'guide-lead', text: 'Abonelikleriniz çoğaldıkça hangisinin ne zaman, hangi karttan, ne kadar çektiğini takip etmek zorlaşır. SubKill bunu tek panelde toplar ve dört soruyu cevaplar:' }),
+      el('p', { class: 'guide-lead', text: 'Abonelikleriniz çoğaldıkça hangisinin ne zaman, ne kadar çektiğini takip etmek zorlaşır. SubKill bunu tek panelde toplar ve üç soruyu cevaplar:' }),
       el('ul', { class: 'bullets' }, [
         el('li', { text: 'Bu ay toplam ne ödeyeceğim?' }),
+        el('li', { text: 'Hangi abonelik sessizce bitmiş, hâlâ listede duruyor?' }),
         el('li', { text: 'Hangi aboneliğe aylardır girmedim, yıllık kaç para tutuyor?' }),
         el('li', { text: 'Hangi iki abonelik aynı işi yapıyor?' }),
-        el('li', { text: 'Hangi kartın aylık yükü limitine yaklaşıyor?' })
       ]),
       el('div', { class: 'guide-note ok' }, [
         el('strong', { text: 'Her şey bu bilgisayarda kalır. ' }),
@@ -565,7 +462,11 @@ const ONBOARD_STEPS = [
   {
     title: 'Adım 1 · Gmail makbuzlarını tarayın',
     build: () => el('div', {}, [
-      el('p', { class: 'guide-lead', text: 'En hızlı başlangıç bu. SubKill posta kutunuzdaki fatura ve makbuz maillerini okuyup abonelik listesini kendisi çıkarır; servis adı, tutar, para birimi, yenileme tarihi ve kartın son dört hanesi otomatik gelir.' }),
+      el('p', { class: 'guide-lead', text: 'En hızlı başlangıç bu. SubKill posta kutunuzdaki fatura ve makbuz maillerini okuyup abonelik listesini kendisi çıkarır; servis adı, tutar, para birimi, ödeme periyodu ve yenileme tarihi otomatik gelir. İptal bildirimlerini de tanır ve o abonelikleri iptal olarak işaretler.' }),
+      el('div', { class: 'guide-note ok' }, [
+        el('strong', { text: 'Birden fazla hesap: ' }),
+        'İstediğiniz kadar Gmail hesabı ekleyebilirsiniz. Hepsi birlikte taranır; aynı servis iki hesapta çıkarsa tek kayıtta birleşir.'
+      ]),
       gmailGuide(),
       el('div', { class: 'guide-note' }, [
         'Şimdi yapmak istemiyorsanız sorun değil: abonelikleri elle de ekleyebilirsiniz. ',
@@ -574,30 +475,13 @@ const ONBOARD_STEPS = [
     ])
   },
   {
-    title: 'Adım 2 · Kartlarınızı tanımlayın',
-    build: () => el('div', { class: 'guide' }, [
-      el('p', { class: 'guide-lead' }, [
-        'SubKill bankanıza bağlanmaz, kart numarası istemez. Yalnızca makbuzlarda görünen ',
-        el('strong', { text: 'son dört haneyi' }),
-        ' kullanır; hangi aboneliğin hangi karttan çıktığını gruplamak için.'
-      ]),
-      el('ul', { class: 'bullets' }, [
-        el('li', { text: 'Kart haneleri makbuzlardan kendiliğinden gelir; elle kart eklemezsiniz.' }),
-        el('li', { text: 'Kartlar sekmesinde her karta bir etiket verirsiniz (ana kart, iş kartı gibi).' }),
-        el('li', { text: 'Aylık limit yazarsanız, o kartın abonelik yükü limitin %80\'ini geçtiğinde uyarı alırsınız.' }),
-        el('li', { text: 'Limit yazmazsanız sadece toplamı görürsünüz; uyarı çıkmaz.' })
-      ]),
-      el('div', { class: 'guide-note', text: 'Bu yüzden önce Gmail taramasını yapmak mantıklı: kartlar o taramadan çıkar.' })
-    ])
-  },
-  {
-    title: 'Adım 3 · Kullanımı tarayın',
+    title: 'Adım 2 · Kullanımı tarayın',
     build: () => el('div', { class: 'guide' }, [
       el('p', { class: 'guide-lead', text: 'Sağ üstteki "Kullanımı tara" düğmesi, tarayıcı geçmişinizi okuyup her servise en son ne zaman girdiğinizi bulur. Bu tarama tamamen bu bilgisayarda yapılır; sonuç olarak yalnızca "hangi servise en son ne zaman girildi" bilgisi saklanır.' }),
       el('p', { text: 'Bu adımdan sonra Panel sekmesi size şunu söyleyebilir hale gelir: "Şu aboneliğe 4 aydır girmemişsin, yıllık şu kadar tutuyor."' }),
       el('div', { class: 'guide-note ok' }, [
-        el('strong', { text: 'Hazırsınız. ' }),
-        'Bu rehberi istediğiniz zaman Ayarlar sekmesinden tekrar açabilirsiniz.'
+        el('strong', { text: 'Bundan sonrası kendiliğinden: ' }),
+        'Otomatik tarama açık. Uygulama günde bir kez bağlı hesaplarınıza bakar, yeni makbuz geldiyse envantere ekler, iptal bildirimi geldiyse işaretler. Aralığı Ayarlar sekmesinden değiştirebilir, rehberi de oradan tekrar açabilirsiniz.'
       ])
     ])
   }
@@ -694,8 +578,40 @@ function gmailGuide() {
 
 function viewScan() {
   const wrap = document.createDocumentFragment();
+  const accounts = state.settings.gmailAccounts || [];
 
-  const userInput = el('input', { type: 'text', class: 'grow', value: state.settings.gmailUser || '', placeholder: 'ornek@gmail.com' });
+  /* ---- bagli hesaplar ---- */
+
+  const accPanel = el('div', { class: 'panel' }, [
+    el('h3', {}, ['Bağlı Gmail hesapları', el('small', { text: accounts.length ? `${accounts.length} hesap` : 'henüz yok' })])
+  ]);
+  const accBody = el('div', { class: 'panel-body' });
+
+  if (!accounts.length) {
+    accBody.appendChild(el('div', { class: 'empty', text: 'Henüz hesap eklenmedi. Aşağıdan ilk hesabınızı ekleyin; istediğiniz kadar hesap ekleyebilirsiniz.' }));
+  } else {
+    const list = el('div');
+    for (const a of accounts) {
+      list.appendChild(el('div', { class: 'acct-row' }, [
+        el('div', { class: 'acct-mail' }, [
+          el('div', { class: 'row-name', text: a.user }),
+          el('div', { class: 'row-sub', text: a.hasPassword === false ? 'şifre kayıtlı değil, yeniden ekleyin' : 'bağlı' })
+        ]),
+        el('button', {
+          class: 'danger small',
+          text: 'Kaldır',
+          onclick: async () => {
+            const r = await api.gmailRemoveAccount(a.user);
+            await refresh(r.state);
+            toast(`${a.user} kaldırıldı.`, 'ok');
+          }
+        })
+      ]));
+    }
+    accBody.appendChild(list);
+  }
+
+  const userInput = el('input', { type: 'text', class: 'grow', placeholder: 'ornek@gmail.com' });
   const passInput = el('input', { type: 'password', class: 'grow', placeholder: 'Google uygulama şifresi (16 hane)' });
   // Google sifreyi bosluklu gosteriyor; kullanici oldugu gibi yapistirabilsin.
   passInput.addEventListener('input', () => {
@@ -703,30 +619,54 @@ function viewScan() {
     if (cleaned !== passInput.value) passInput.value = cleaned;
   });
 
-  const gmailPanel = el('div', { class: 'panel' }, [el('h3', {}, ['Gmail makbuz taraması'])]);
-  const gBody = el('div', { class: 'panel-body' }, [
-    el('div', { class: 'form-grid' }, [
-      el('div', { class: 'field' }, [el('label', { text: 'Gmail adresi' }), userInput]),
-      el('div', { class: 'field' }, [el('label', { text: 'Uygulama şifresi' }), passInput]),
-      el('div', { class: 'field full' }, [gmailGuide()])
-    ]),
-    el('div', { class: 'filters' }, [
+  accBody.appendChild(el('div', { class: 'form-grid', style: 'margin-top:14px' }, [
+    el('div', { class: 'field' }, [el('label', { text: 'Gmail adresi' }), userInput]),
+    el('div', { class: 'field' }, [el('label', { text: 'Uygulama şifresi' }), passInput]),
+    el('div', { class: 'field full' }, [gmailGuide()])
+  ]));
+
+  accBody.appendChild(el('div', { class: 'filters' }, [
+    el('button', {
+      class: 'primary',
+      text: 'Hesabı ekle ve doğrula',
+      onclick: async (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        btn.textContent = 'Doğrulanıyor...';
+        const r = await api.gmailAddAccount({ user: userInput.value.trim(), appPassword: passInput.value.trim() });
+        btn.disabled = false;
+        btn.textContent = 'Hesabı ekle ve doğrula';
+        if (!r.ok) { toast(r.error, 'err'); return; }
+        userInput.value = '';
+        passInput.value = '';
+        await refresh(r.state);
+        toast('Hesap eklendi ve bağlantı doğrulandı.', 'ok');
+      }
+    })
+  ]));
+  accPanel.appendChild(accBody);
+  wrap.appendChild(accPanel);
+
+  /* ---- tarama ---- */
+
+  const scanPanel = el('div', { class: 'panel' }, [
+    el('h3', {}, ['Makbuz taraması', el('small', { text: accounts.length > 1 ? 'tüm hesaplar birlikte taranır' : '' })])
+  ]);
+  const scanBody = el('div', { class: 'panel-body' }, [
+    el('div', { class: 'hint', text: 'Tarama, bağlı tüm hesaplardaki fatura ve makbuz maillerini okur; aynı servis birden fazla hesapta çıkarsa tek kayıtta birleştirilir. İptal bildirimleri de yakalanır ve o abonelikler iptal olarak işaretlenir.' }),
+    el('div', { class: 'filters', style: 'margin-top:12px' }, [
       el('button', {
-        class: 'ghost',
-        text: 'Bağlantıyı test et',
-        onclick: async (e) => {
-          e.target.disabled = true;
-          const r = await api.gmailTest({ user: userInput.value.trim(), appPassword: passInput.value.trim() });
-          e.target.disabled = false;
-          toast(r.ok ? 'Bağlantı başarılı.' : r.error, r.ok ? 'ok' : 'err');
-        }
-      }),
-      el('button', { class: 'primary', text: 'Makbuzları tara', id: 'btnScan', onclick: startScan })
+        class: 'primary',
+        text: 'Makbuzları tara',
+        id: 'btnScan',
+        disabled: accounts.length ? null : true,
+        onclick: startScan
+      })
     ]),
     el('div', { class: 'progress', id: 'scanProgress', hidden: true }, [el('div')])
   ]);
-  gmailPanel.appendChild(gBody);
-  wrap.appendChild(gmailPanel);
+  scanPanel.appendChild(scanBody);
+  wrap.appendChild(scanPanel);
 
   async function startScan(e) {
     const btn = e.target;
@@ -739,26 +679,34 @@ function viewScan() {
       if (bar && p.total) bar.style.width = `${Math.round((p.done / p.total) * 100)}%`;
     });
 
-    const r = await api.gmailScan({ user: userInput.value.trim(), appPassword: passInput.value.trim() });
+    const r = await api.gmailScan({});
     stop();
     btn.disabled = false;
     btn.textContent = 'Makbuzları tara';
     document.getElementById('scanProgress').hidden = true;
 
     if (!r.ok) { toast(r.error, 'err'); return; }
-    scanResults = r.records;
-    toast(`${r.scanned} mail tarandı, ${r.records.length} servis bulundu.`, 'ok');
+    scanResults = { records: r.records, cancellations: r.cancellations || [], perAccount: r.perAccount || [] };
+    const cancelNote = scanResults.cancellations.length ? `, ${scanResults.cancellations.length} iptal bildirimi` : '';
+    toast(`${r.scanned} mail tarandı, ${r.records.length} servis${cancelNote} bulundu.`, 'ok');
+    if (r.errors && r.errors.length) toast(r.errors.join(' · '), 'err');
     render();
   }
 
-  if (scanResults && scanResults.length) {
+  if (scanResults && (scanResults.records || []).length) {
     const checks = [];
     const resPanel = el('div', { class: 'panel' }, [
-      el('h3', {}, ['Bulunanlar', el('small', { text: `${scanResults.length} servis` })])
+      el('h3', {}, ['Bulunanlar', el('small', { text: `${scanResults.records.length} servis` })])
     ]);
     const resBody = el('div', { class: 'panel-body tight' });
 
-    for (const rec of scanResults) {
+    if (scanResults.perAccount.length > 1) {
+      resBody.appendChild(el('div', { class: 'hint', style: 'padding:10px 12px 0' }, [
+        scanResults.perAccount.map((a) => `${a.user}: ${a.matched} makbuz`).join(' · ')
+      ]));
+    }
+
+    for (const rec of scanResults.records) {
       const cb = el('input', { type: 'checkbox', checked: true });
       checks.push({ cb, rec });
       const known = state.subscriptions.some((s) => s.name.toLowerCase() === rec.name.toLowerCase());
@@ -770,8 +718,16 @@ function viewScan() {
         ]),
         el('div', { class: 'meta' }, [
           el('div', { text: `${native(rec.amount, rec.currency)} · ${CYCLE_LABELS[rec.cycle] || rec.cycle}` }),
-          el('div', { text: `${rec.cardLast4 ? `kart ${rec.cardLast4} · ` : ''}${known ? 'mevcut kayıt güncellenir' : 'yeni'}` })
+          el('div', { text: known ? 'mevcut kayıt güncellenir' : 'yeni' })
         ])
+      ]));
+    }
+
+    if (scanResults.cancellations.length) {
+      resBody.appendChild(el('div', { class: 'hint', style: 'padding:12px' }, [
+        el('strong', { text: 'İptal bildirimi bulunanlar: ' }),
+        scanResults.cancellations.map((c) => c.name).join(', '),
+        '. Envantere eklerken bunlar iptal olarak işaretlenir.'
       ]));
     }
 
@@ -781,10 +737,11 @@ function viewScan() {
         text: 'Seçilenleri envantere ekle',
         onclick: async () => {
           const picked = checks.filter((c) => c.cb.checked).map((c) => c.rec);
-          const r = await api.gmailApply(picked);
+          const r = await api.gmailApply({ records: picked, cancellations: scanResults.cancellations });
           scanResults = null;
           await refresh(r.state);
-          toast(`${r.result.added} yeni, ${r.result.updated} güncellendi.`, 'ok');
+          const c = (r.cancelled || []).length;
+          toast(`${r.result.added} yeni, ${r.result.updated} güncellendi${c ? `, ${c} iptal işaretlendi` : ''}.`, 'ok');
         }
       }),
       el('button', { class: 'ghost', text: 'Sonuçları temizle', onclick: () => { scanResults = null; render(); } })
@@ -863,6 +820,54 @@ function viewSettings() {
   ]));
   wrap.appendChild(panel);
 
+  /* ---- otomatik tarama ---- */
+
+  const autoOn = el('input', { type: 'checkbox', checked: s.autoScan !== false });
+  const autoHours = el('input', { type: 'number', value: s.autoScanEveryHours || 24, min: '6', step: '1' });
+  const autoLookback = el('input', { type: 'number', value: s.autoScanLookbackDays || 14, min: '3', step: '1' });
+
+  const autoPanel = el('div', { class: 'panel' }, [
+    el('h3', {}, ['Otomatik tarama', el('small', { text: s.lastAutoScanAt ? `son: ${shortDate(s.lastAutoScanAt)}` : 'henüz çalışmadı' })])
+  ]);
+  autoPanel.appendChild(el('div', { class: 'panel-body' }, [
+    el('div', { class: 'hint', text: 'Açıkken uygulama arka planda belirli aralıklarla bağlı Gmail hesaplarını tarar, yeni makbuzları envantere ekler ve iptal bildirimlerini işaretler. Kısa bir geriye dönüş penceresi kullanılır, o yüzden hızlı biter.' }),
+    el('label', { class: 'switch', style: 'margin-top:12px' }, [autoOn, el('span', { text: 'Otomatik taramayı aç' })]),
+    el('div', { class: 'form-grid', style: 'margin-top:12px' }, [
+      el('div', { class: 'field' }, [el('label', { text: 'Tarama aralığı (saat)' }), autoHours]),
+      el('div', { class: 'field' }, [el('label', { text: 'Geriye dönük bakılan gün' }), autoLookback])
+    ]),
+    el('div', { class: 'filters', style: 'margin-top:12px' }, [
+      el('button', {
+        class: 'primary',
+        text: 'Kaydet',
+        onclick: async () => {
+          await refresh(await api.saveSettings({
+            autoScan: autoOn.checked,
+            autoScanEveryHours: Math.max(6, Number(autoHours.value) || 24),
+            autoScanLookbackDays: Math.max(3, Number(autoLookback.value) || 14)
+          }));
+          toast('Otomatik tarama ayarı kaydedildi.', 'ok');
+        }
+      }),
+      el('button', {
+        class: 'ghost',
+        text: 'Şimdi tara',
+        onclick: async (e) => {
+          e.target.disabled = true;
+          e.target.textContent = 'Taranıyor...';
+          const r = await api.runAutoScan();
+          e.target.disabled = false;
+          e.target.textContent = 'Şimdi tara';
+          if (r.state) await refresh(r.state);
+          if (!r.ok) { toast(r.skipped ? `Tarama yapılmadı: ${r.skipped}` : (r.error || 'Tarama yapılamadı.'), 'err'); return; }
+          const c = (r.cancelled || []).length;
+          toast(`${r.added} yeni, ${r.updated} güncellendi${c ? `, ${c} iptal işaretlendi` : ''}.`, 'ok');
+        }
+      })
+    ])
+  ]));
+  wrap.appendChild(autoPanel);
+
   const data = el('div', { class: 'panel' }, [el('h3', {}, ['Veri'])]);
   const pathLine = el('div', { class: 'hint', text: 'Veri dosyası yükleniyor...' });
   api.dataPath().then((p) => { pathLine.textContent = `Tüm veriler bu dosyada, bilgisayarınızda: ${p}`; });
@@ -921,6 +926,15 @@ document.getElementById('modalBackdrop').addEventListener('click', (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal();
+});
+
+api.onAutoScan(async (p) => {
+  await refresh();
+  const parts = [];
+  if (p.added) parts.push(`${p.added} yeni abonelik`);
+  if (p.updated) parts.push(`${p.updated} güncelleme`);
+  if (p.cancelled) parts.push(`${p.cancelled} iptal`);
+  if (parts.length) toast(`Otomatik tarama: ${parts.join(', ')}.`, 'ok');
 });
 
 refresh().then(() => {

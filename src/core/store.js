@@ -11,7 +11,7 @@ const EMPTY = {
     base: 'TRY',
     rates: { TRY: 1, USD: 48.6, EUR: 56.1, GBP: 65.7 },
     ratesUpdatedAt: null,
-    gmailAccounts: [],
+    mailAccounts: [],
     autoScan: true,
     autoScanEveryHours: 24,
     autoScanLookbackDays: 14,
@@ -42,13 +42,25 @@ class Store {
         ...parsed,
         settings: { ...EMPTY.settings, ...(parsed.settings || {}) }
       };
-      // Eski surumde tek bir gmailUser vardi; listeye tasiniyor.
+      // Eski surumlerin izleri temizleniyor: once tek bir gmailUser vardi,
+      // sonra sadece Gmail tutan bir gmailAccounts listesi. Ikisi de artik
+      // sunucu bilgisi tasiyan mailAccounts listesine goc ediyor.
       const st = this.data.settings;
-      if (!Array.isArray(st.gmailAccounts)) st.gmailAccounts = [];
-      if (st.gmailUser && !st.gmailAccounts.some((a) => a.user === st.gmailUser)) {
-        st.gmailAccounts.push({ user: st.gmailUser, addedAt: new Date().toISOString() });
+      if (!Array.isArray(st.mailAccounts)) st.mailAccounts = [];
+      if (Array.isArray(st.gmailAccounts)) {
+        for (const a of st.gmailAccounts) {
+          if (a && a.user && !st.mailAccounts.some((m) => m.user === a.user)) {
+            st.mailAccounts.push({ ...a, provider: a.provider || 'gmail' });
+          }
+        }
+      }
+      delete st.gmailAccounts;
+      if (st.gmailUser && !st.mailAccounts.some((a) => a.user === st.gmailUser)) {
+        st.mailAccounts.push({ user: st.gmailUser, provider: 'gmail', addedAt: new Date().toISOString() });
       }
       delete st.gmailUser;
+      // Saglayicisi yazilmamis kayitlar Gmail donemine ait.
+      for (const a of st.mailAccounts) if (!a.provider) a.provider = 'gmail';
     } catch (err) {
       if (err.code !== 'ENOENT') {
         // Bozuk dosyayi ezme; yedekle ve temiz basla.
@@ -117,30 +129,47 @@ class Store {
     return before !== d.subscriptions.length;
   }
 
-  /**
-   * Tarama sonuclarini mevcut kayitlarla birlestirir.
-   * Elle girilen alanlar (loginMethod, loginEmail, notes, monthlyLimit) korunur;
-   * tarama sadece para ve tarih alanlarini tazeler.
-   */
-  /* ---------------- gmail hesaplari ---------------- */
+  /* ---------------- posta hesaplari ---------------- */
 
-  addGmailAccount(user) {
+  /**
+   * Hesabi listeye ekler ya da var olani gunceller.
+   * Sifre burada tutulmaz; o isletim sisteminin kasasinda durur.
+   * @param {{user:string, provider?:string, host?:string, port?:number, secure?:boolean}} account
+   */
+  addMailAccount(account) {
     const d = this.get();
-    const addr = String(user || '').trim().toLowerCase();
-    if (!addr) return d.settings.gmailAccounts;
-    if (!d.settings.gmailAccounts.some((a) => a.user === addr)) {
-      d.settings.gmailAccounts.push({ user: addr, addedAt: new Date().toISOString() });
-      this.save();
+    const src = typeof account === 'string' ? { user: account } : (account || {});
+    const addr = String(src.user || '').trim().toLowerCase();
+    if (!addr) return d.settings.mailAccounts;
+
+    const entry = {
+      user: addr,
+      provider: src.provider || 'gmail',
+      host: src.host || null,
+      port: Number(src.port) || 993,
+      secure: src.secure !== false
+    };
+    const i = d.settings.mailAccounts.findIndex((a) => a.user === addr);
+    if (i >= 0) {
+      d.settings.mailAccounts[i] = { ...d.settings.mailAccounts[i], ...entry };
+    } else {
+      d.settings.mailAccounts.push({ ...entry, addedAt: new Date().toISOString() });
     }
-    return d.settings.gmailAccounts;
+    this.save();
+    return d.settings.mailAccounts;
   }
 
-  removeGmailAccount(user) {
+  removeMailAccount(user) {
     const d = this.get();
     const addr = String(user || '').trim().toLowerCase();
-    d.settings.gmailAccounts = d.settings.gmailAccounts.filter((a) => a.user !== addr);
+    d.settings.mailAccounts = d.settings.mailAccounts.filter((a) => a.user !== addr);
     this.save();
-    return d.settings.gmailAccounts;
+    return d.settings.mailAccounts;
+  }
+
+  getMailAccount(user) {
+    const addr = String(user || '').trim().toLowerCase();
+    return this.get().settings.mailAccounts.find((a) => a.user === addr) || null;
   }
 
   /**
@@ -168,6 +197,11 @@ class Store {
     return applied;
   }
 
+  /**
+   * Tarama sonuclarini mevcut kayitlarla birlestirir.
+   * Elle girilen alanlar (loginMethod, loginEmail, notes, monthlyLimit) korunur;
+   * tarama sadece para ve tarih alanlarini tazeler.
+   */
   mergeScanned(records) {
     const d = this.get();
     const result = { added: 0, updated: 0, items: [] };

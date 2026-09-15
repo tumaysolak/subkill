@@ -46,18 +46,12 @@ okuyarak envanteri kendisi kurar, sonra uc soruyu cevaplar:
 | lastUsedAt | ISO date | tarayici gecmisinden veya elle |
 | status | string | active / trial / cancelled / paused |
 | trialEndsAt | ISO date | deneme bitisi |
-| source | string | gmail / manual / csv |
+| source | string | mail / manual / csv |
 | notes | string | |
 
-### Card
-| alan | tip |
-|---|---|
-| last4 | string |
-| label | string |
-| monthlyLimit | number (TRY) |
-
 ### Settings
-currency base (TRY), fx rates, gmail hesabi, uyari esikleri.
+currency base (TRY), fx rates, posta hesaplari (adres + saglayici + sunucu),
+otomatik tarama araligi, uyari esikleri.
 
 ## Motor kurallari
 
@@ -80,8 +74,12 @@ yeni makbuzu gelmemis abonelikler isaretlenir (aylikta 45, yillikta 400 gun tole
 
 **Deneme bitisi**: trialEndsAt 7 gun icindeyse kirmizi uyari (unutulup ucrete donmesin).
 
-## Gmail ayristirma
-IMAP + Google uygulama sifresi. Konu/gonderen filtresi ile makbuz adaylarini toplar,
+## Posta ayristirma
+IMAP. Gmail, iCloud, Outlook, Yandex, Yahoo, Zoho icin sunucu onayarlari hazir;
+kendi alan adindaki kutularda (cPanel, Plesk) sunucu adresten tahmin edilir
+(mail.<alanadi>, imap.<alanadi>, <alanadi>) ve elle de girilebilir. Gmail'de
+X-GM-RAW arama dili kullanilir; diger sunucularda konu aramasi + son donemin
+tamami taranir. Konu/gonderen filtresi ile makbuz adaylarini toplar,
 her mailden: gonderen alan adi → katalog eslesmesi → servis adi + kategori + site,
 gövdeden tutar + para birimi + periyot + yenileme tarihi + deneme bitisi.
 Ayni servisin birden fazla makbuzu varsa en yenisi kayda islenir, eskisi gecmis olur.

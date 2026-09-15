@@ -89,19 +89,55 @@ test('bozuk dosya uygulamayi kilitlemez', () => {
   }
 });
 
-/* ---------------- gmail hesaplari ve iptal ---------------- */
+/* ---------------- posta hesaplari ve iptal ---------------- */
 
-test('birden fazla gmail hesabi eklenip kaldirilabilir', () => {
+test('birden fazla posta hesabi eklenip kaldirilabilir', () => {
   const { store } = tmpStore();
-  store.addGmailAccount('BiRi@Gmail.com');
-  store.addGmailAccount('ikinci@gmail.com');
-  store.addGmailAccount('biri@gmail.com'); // ayni adres tekrar eklenmemeli
+  store.addMailAccount({ user: 'BiRi@Gmail.com', provider: 'gmail' });
+  store.addMailAccount({ user: 'ikinci@gmail.com', provider: 'gmail' });
+  store.addMailAccount({ user: 'biri@gmail.com', provider: 'gmail' }); // ayni adres tekrar eklenmemeli
   assert.deepStrictEqual(
-    store.get().settings.gmailAccounts.map((a) => a.user),
+    store.get().settings.mailAccounts.map((a) => a.user),
     ['biri@gmail.com', 'ikinci@gmail.com']
   );
-  store.removeGmailAccount('biri@gmail.com');
-  assert.deepStrictEqual(store.get().settings.gmailAccounts.map((a) => a.user), ['ikinci@gmail.com']);
+  store.removeMailAccount('biri@gmail.com');
+  assert.deepStrictEqual(store.get().settings.mailAccounts.map((a) => a.user), ['ikinci@gmail.com']);
+});
+
+test('kendi sunucusundaki kutu sunucu bilgisiyle saklanir', () => {
+  const { store } = tmpStore();
+  store.addMailAccount({ user: 'Info@Sirketim.com.tr', provider: 'custom', host: 'mail.sirketim.com.tr', port: 993, secure: true });
+  const acc = store.getMailAccount('info@sirketim.com.tr');
+  assert.strictEqual(acc.host, 'mail.sirketim.com.tr');
+  assert.strictEqual(acc.port, 993);
+  assert.strictEqual(acc.provider, 'custom');
+
+  // Ayni adres yeniden eklenirse sunucu bilgisi guncellenir, kayit ikizlenmez.
+  store.addMailAccount({ user: 'info@sirketim.com.tr', provider: 'custom', host: 'imap.sirketim.com.tr', port: 143, secure: false });
+  assert.strictEqual(store.get().settings.mailAccounts.length, 1);
+  const yeni = store.getMailAccount('info@sirketim.com.tr');
+  assert.strictEqual(yeni.host, 'imap.sirketim.com.tr');
+  assert.strictEqual(yeni.port, 143);
+  assert.strictEqual(yeni.secure, false);
+});
+
+test('eski gmailAccounts listesi mailAccounts olarak aciliyor', () => {
+  const file = path.join(os.tmpdir(), `subkill-goc-${Date.now()}.json`);
+  fs.writeFileSync(file, JSON.stringify({
+    version: 1,
+    settings: { gmailUser: 'tek@gmail.com', gmailAccounts: [{ user: 'eski@gmail.com', addedAt: '2026-01-01' }] },
+    subscriptions: [],
+    scans: []
+  }), 'utf8');
+
+  const store = new Store(file);
+  store.load();
+  const st = store.get().settings;
+  assert.deepStrictEqual(st.mailAccounts.map((a) => a.user), ['eski@gmail.com', 'tek@gmail.com']);
+  assert.ok(st.mailAccounts.every((a) => a.provider === 'gmail'), 'eski kayitlar gmail olarak isaretlenmeli');
+  assert.strictEqual(st.gmailAccounts, undefined);
+  assert.strictEqual(st.gmailUser, undefined);
+  fs.unlinkSync(file);
 });
 
 test('iptal bildirimi aboneligi iptal olarak isaretler', () => {

@@ -19,9 +19,11 @@ sonra dört soruyu cevaplar:
 
 ## Öne çıkanlar
 
-- **Gmail makbuz taraması** — IMAP üzerinden doğrudan bilgisayarından; servis adı, tutar,
+- **Makbuz taraması** — IMAP üzerinden doğrudan bilgisayarından; servis adı, tutar,
   para birimi, ödeme periyodu ve yenileme tarihi çıkarılır. Birden fazla hesap bağlanabilir,
   hepsi birlikte taranır.
+- **Her posta kutusu** — Gmail, iCloud, Outlook, Yandex, Yahoo, Zoho hazır ayarlarla;
+  kendi alan adındaki kutular (hosting, cPanel, Plesk, kurumsal sunucu) sunucu tahminiyle.
 - **Günlük otomatik tarama** — belirli aralıklarla yeni makbuz geldi mi diye bakar.
 - **İptal tespiti** — iptal bildirimlerini tanır; bildirim gelmediyse yenilemesi geçmiş
   ama makbuzu gelmemiş abonelikleri işaretler.
@@ -35,7 +37,7 @@ sonra dört soruyu cevaplar:
 ## Gizlilik
 
 Sunucu yok, hesap yok, telemetri yok. Envanter makinendeki tek bir JSON dosyasında durur.
-Gmail bağlantısı doğrudan bilgisayarından kurulur; uygulama şifresi işletim sisteminin
+Posta bağlantısı doğrudan bilgisayarından kurulur; şifre işletim sisteminin
 güvenli kasasında (macOS Keychain / Windows DPAPI) saklanır, veri dosyasına yazılmaz.
 
 Servislerin **parolaları saklanmaz**. Yalnızca "bu hesaba hangi adresle, hangi yöntemle
@@ -68,14 +70,21 @@ npm run dist:win   # Windows .zip
 macOS paketi imzasız üretilir. İlk açılışta Gatekeeper uyarı verirse uygulamaya sağ tıklayıp
 "Aç" seçilir.
 
-## Gmail uygulama şifresi
+## Posta hesabı bağlama
 
-1. Google hesabında iki adımlı doğrulama açık olmalı.
-2. [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) adresinden
-   16 haneli bir uygulama şifresi üret.
-3. Uygulamanın Tarama sekmesine Gmail adresini ve bu şifreyi gir.
+Tarama sekmesine adresini yaz; sağlayıcı adresten tanınır ve o sağlayıcıya ait adımlar
+ekranda çıkar.
 
-Hesap parolası çalışmaz ve istenmez.
+**Gmail, iCloud, Outlook, Yandex, Yahoo, Zoho** — hesap parolası çalışmaz ve istenmez.
+Sağlayıcının güvenlik sayfasından uygulamaya özel bir şifre üretilir (çoğunda önce iki
+adımlı doğrulama açık olmalı). Gmail için:
+[myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+
+**Kendi alan adındaki kutular (hosting, cPanel, Plesk, kurumsal)** — kullanıcı adı tam
+e-posta adresi, şifre posta kutusunun kendi şifresidir. Sunucu adresten tahmin edilir
+(`mail.<alanadi>` → `imap.<alanadi>` → `<alanadi>`, port 993 SSL); tahmin tutmazsa
+panelde yazan adres, port ve SSL tercihi elle girilir. Port 143 girilirse bağlantı
+STARTTLS ile şifrelenir.
 
 ## Testler
 
@@ -83,8 +92,8 @@ Hesap parolası çalışmaz ve istenmez.
 npm test
 ```
 
-Para ayrıştırma, makbuz okuma, tarih çıkarma, çakışma tespiti, iptal tespiti ve takvim
-hesaplarını kapsayan 24 test.
+Para ayrıştırma, makbuz okuma, tarih çıkarma, çakışma tespiti, iptal tespiti, sağlayıcı
+çözümleme ve takvim hesaplarını kapsayan testler.
 
 ## Mimari
 
@@ -95,7 +104,8 @@ src/core/      Electron'dan bağımsız saf mantık (test edilebilir)
   parser.js    makbuz ayrıştırma
   insights.js  özet, takvim, çakışma, ölü abonelik, sessiz iptal
   store.js     yerel JSON deposu
-src/services/  dış dünya (Gmail IMAP, tarayıcı geçmişi, TCMB kuru)
+  providers.js posta sağlayıcı önayarları ve sunucu tahmini
+src/services/  dış dünya (IMAP posta kutuları, tarayıcı geçmişi, TCMB kuru)
 src/main.js    Electron ana süreç ve IPC yüzeyi
 ui/            arayüz (vanilla JS, çerçeve yok)
 web/           getsubkill.com landing sayfası ve e-posta toplama ucu

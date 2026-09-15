@@ -14,6 +14,8 @@ window.addEventListener('unhandledrejection', (e) => {
 let state = null;
 let currentView = 'panel';
 let scanResults = null;
+// Posta saglayicilarinin onayarlari; acilista main tarafindan bir kez alinir.
+let providers = [];
 
 /* ---------------- yardimcilar ---------------- */
 
@@ -152,7 +154,7 @@ function viewPanel() {
   ]);
   const body = el('div', { class: 'panel-body tight' });
   if (!c.alerts.length) {
-    body.appendChild(el('div', { class: 'empty', text: 'Uyarı yok. Önce Gmail taraması yapıp envanteri kurun.' }));
+    body.appendChild(el('div', { class: 'empty', text: 'Uyarı yok. Önce posta taraması yapıp envanteri kurun.' }));
   } else {
     for (const a of c.alerts.slice(0, 14)) {
       body.appendChild(el('div', { class: `alert ${a.level}` }, [
@@ -280,7 +282,7 @@ function renderTable() {
   if (!rows.length) {
     body.appendChild(el('div', {
       class: 'empty',
-      text: state.subscriptions.length ? 'Filtreye uyan kayıt yok.' : 'Henüz abonelik yok. Tarama sekmesinden Gmail makbuzlarını tarayın.'
+      text: state.subscriptions.length ? 'Filtreye uyan kayıt yok.' : 'Henüz abonelik yok. Tarama sekmesinden posta kutunuzdaki makbuzları tarayın.'
     }));
     return;
   }
@@ -460,17 +462,21 @@ const ONBOARD_STEPS = [
     ])
   },
   {
-    title: 'Adım 1 · Gmail makbuzlarını tarayın',
+    title: 'Adım 1 · Posta kutunuzu tarayın',
     build: () => el('div', {}, [
       el('p', { class: 'guide-lead', text: 'En hızlı başlangıç bu. SubKill posta kutunuzdaki fatura ve makbuz maillerini okuyup abonelik listesini kendisi çıkarır; servis adı, tutar, para birimi, ödeme periyodu ve yenileme tarihi otomatik gelir. İptal bildirimlerini de tanır ve o abonelikleri iptal olarak işaretler.' }),
       el('div', { class: 'guide-note ok' }, [
         el('strong', { text: 'Birden fazla hesap: ' }),
-        'İstediğiniz kadar Gmail hesabı ekleyebilirsiniz. Hepsi birlikte taranır; aynı servis iki hesapta çıkarsa tek kayıtta birleşir.'
+        'İstediğiniz kadar hesap ekleyebilirsiniz: Gmail, iCloud, Outlook, Yandex ya da kendi alan adınızdaki bir kutu (hosting, cPanel). Hepsi birlikte taranır; aynı servis iki hesapta çıkarsa tek kayıtta birleşir.'
       ]),
-      gmailGuide(),
+      el('div', { class: 'guide-note' }, [
+        el('strong', { text: 'Nasıl bağlanır: ' }),
+        'Tarama sekmesinde adresinizi yazdığınızda SubKill sağlayıcıyı tanır ve o sağlayıcıya özel adımları gösterir. ',
+        'Gmail, iCloud, Outlook, Yandex gibi kutular uygulamaya özel şifre ister; kendi alan adınızdaki kutularda posta kutusunun kendi şifresi kullanılır.'
+      ]),
       el('div', { class: 'guide-note' }, [
         'Şimdi yapmak istemiyorsanız sorun değil: abonelikleri elle de ekleyebilirsiniz. ',
-        'Gmail bağlantısını sonra Tarama sekmesinden kurabilirsiniz.'
+        'Posta bağlantısını sonra Tarama sekmesinden kurabilirsiniz.'
       ])
     ])
   },
@@ -516,10 +522,105 @@ async function finishOnboarding() {
   try { await refresh(await api.saveSettings({ onboarded: true })); } catch (_) { /* kayit basarisiz olsa da devam */ }
 }
 
-/* ---------------- gmail uygulama sifresi rehberi ---------------- */
+/* ---------------- baglanti rehberleri ---------------- */
+
+/** Adresin alan adina gore hangi onayarin kullanilacagini bulur. */
+function detectProvider(address) {
+  const m = /@([^@\s>]+)/.exec(String(address || '').trim().toLowerCase());
+  const domain = m ? m[1] : '';
+  if (!domain) return null;
+  const hit = providers.find((p) => (p.domains || []).includes(domain));
+  return hit ? hit.id : 'custom';
+}
+
+function providerById(id) {
+  return providers.find((p) => p.id === id) || null;
+}
 
 /**
- * Uygulama sifresi adimlarini anlatan blok.
+ * Secili saglayiciya gore dogru rehberi dondurur.
+ * Gmail'in adimlari kendine ozel, diger uygulama sifresi isteyen saglayicilar
+ * ortak bir metin kullaniyor, kendi sunucusu olanlar ise sunucu ayarlarini
+ * anlatan bloku goruyor.
+ */
+function mailGuide(providerId) {
+  if (providerId === 'gmail') return gmailGuide();
+  if (providerId === 'custom') return customServerGuide();
+  return appPasswordGuide(providerId);
+}
+
+/** cPanel, Plesk ve kurumsal sunucular icin baglanti rehberi. */
+function customServerGuide() {
+  const step = (no, title, children) => el('li', {}, [
+    el('div', { class: 'step-no', text: String(no) }),
+    el('div', { class: 'step-text' }, [el('strong', { text: title }), ...children])
+  ]);
+
+  return el('div', { class: 'guide' }, [
+    el('p', { class: 'guide-lead' }, [
+      'Kendi alan adınızdaki kutular (hosting paketi, cPanel, Plesk, kurumsal sunucu) IMAP ile bağlanır. ',
+      'SubKill sunucu adresini adresinizden tahmin eder; tahmin tutmazsa doğru adresi elle yazarsınız.'
+    ]),
+    el('ol', { class: 'steps-list' }, [
+      step(1, 'Kullanıcı adı tam e-posta adresidir.', [
+        el('p', { text: 'Örnek: info@sirketiniz.com. Yalnızca "info" yazmak çoğu sunucuda çalışmaz.' })
+      ]),
+      step(2, 'Şifre, posta kutusunun kendi şifresidir.', [
+        el('p', { text: 'Hosting paneline giriş şifreniz değil, o posta kutusunu açarken belirlediğiniz şifre. Hatırlamıyorsanız panelden sıfırlayabilirsiniz.' })
+      ]),
+      step(3, 'Sunucu genellikle mail.alanadiniz.com, port 993 SSL.', [
+        el('p', { text: 'Emin değilseniz cPanel > E-posta Hesapları > ilgili kutunun "Bağlan / Connect Devices" bağlantısı size birebir sunucu adını ve portu verir. Plesk\'te aynı bilgi Posta > kutu > Ayarlar altındadır.' }),
+        el('p', { text: 'Bazı sunucularda 993 yerine 143 kullanılır. Port alanına 143 yazarsanız SubKill şifreli bağlantıyı STARTTLS ile kurar.' })
+      ])
+    ]),
+    el('div', { class: 'guide-note' }, [
+      el('strong', { text: 'Sertifika hatası alırsanız: ' }),
+      'Alan adınız yerine sunucunun kendi adını (örnek: srv12.hostinginiz.com) yazmanız gerekebilir. ',
+      'Panelde yazan adı birebir kullanın.'
+    ]),
+    el('div', { class: 'guide-note ok' }, [
+      el('strong', { text: 'Şifre nerede duruyor: ' }),
+      'İşletim sisteminin güvenli kasasında (macOS Anahtar Zinciri, Windows DPAPI). ',
+      'Veri dosyasına yazılmaz ve hiçbir sunucuya gönderilmez.'
+    ])
+  ]);
+}
+
+/** Uygulamaya ozel sifre isteyen saglayicilar icin ortak rehber. */
+function appPasswordGuide(providerId) {
+  const p = providerById(providerId);
+  const label = p ? p.label : 'Posta hesabı';
+
+  return el('div', { class: 'guide' }, [
+    el('p', { class: 'guide-lead' }, [
+      `${label} hesabınızın kendi parolası IMAP ile çalışmaz. `,
+      'Bunun yerine yalnızca bu uygulamaya özel bir ',
+      el('strong', { text: 'uygulama şifresi' }),
+      ' üretmeniz gerekir. İstediğiniz an iptal edebilirsiniz; hesap parolanız değişmez.'
+    ]),
+    p && p.hint ? el('p', { text: p.hint }) : null,
+    p && p.appPasswordUrl
+      ? el('button', {
+        class: 'ghost small',
+        text: 'Güvenlik ayarları sayfasını aç',
+        onclick: () => api.openExternal(p.appPasswordUrl)
+      })
+      : null,
+    el('div', { class: 'guide-note' }, [
+      el('strong', { text: 'Çoğu sağlayıcıda ortak şart: ' }),
+      'Uygulama şifresi üretebilmek için hesapta iki adımlı doğrulama açık olmalıdır. ',
+      'Kapalıysa ilgili sayfa hiç açılmaz.'
+    ]),
+    el('div', { class: 'guide-note ok' }, [
+      el('strong', { text: 'Şifre nerede duruyor: ' }),
+      'İşletim sisteminin güvenli kasasında (macOS Anahtar Zinciri, Windows DPAPI). ',
+      'Veri dosyasına yazılmaz ve hiçbir sunucuya gönderilmez.'
+    ])
+  ].filter(Boolean));
+}
+
+/**
+ * Google uygulama sifresi adimlarini anlatan blok.
  *
  * En sik takilinan yer: 2 Adimli Dogrulama kapaliyken Google uygulama sifresi
  * sayfasini hic acmiyor, kullanici "sayfa bulunamadi" goruyor. Bu yuzden o
@@ -578,30 +679,35 @@ function gmailGuide() {
 
 function viewScan() {
   const wrap = document.createDocumentFragment();
-  const accounts = state.settings.gmailAccounts || [];
+  const accounts = state.settings.mailAccounts || [];
 
   /* ---- bagli hesaplar ---- */
 
   const accPanel = el('div', { class: 'panel' }, [
-    el('h3', {}, ['Bağlı Gmail hesapları', el('small', { text: accounts.length ? `${accounts.length} hesap` : 'henüz yok' })])
+    el('h3', {}, ['Bağlı posta hesapları', el('small', { text: accounts.length ? `${accounts.length} hesap` : 'henüz yok' })])
   ]);
   const accBody = el('div', { class: 'panel-body' });
 
   if (!accounts.length) {
-    accBody.appendChild(el('div', { class: 'empty', text: 'Henüz hesap eklenmedi. Aşağıdan ilk hesabınızı ekleyin; istediğiniz kadar hesap ekleyebilirsiniz.' }));
+    accBody.appendChild(el('div', { class: 'empty', text: 'Henüz hesap eklenmedi. Aşağıdan ilk hesabınızı ekleyin; Gmail, iCloud, Outlook, Yandex ya da kendi alan adınızdaki bir kutu olabilir.' }));
   } else {
     const list = el('div');
     for (const a of accounts) {
+      const p = providerById(a.provider);
+      const nerede = [p ? p.label : a.provider, a.host || null].filter(Boolean).join(' · ');
       list.appendChild(el('div', { class: 'acct-row' }, [
         el('div', { class: 'acct-mail' }, [
           el('div', { class: 'row-name', text: a.user }),
-          el('div', { class: 'row-sub', text: a.hasPassword === false ? 'şifre kayıtlı değil, yeniden ekleyin' : 'bağlı' })
+          el('div', {
+            class: 'row-sub',
+            text: a.hasPassword === false ? 'şifre kayıtlı değil, yeniden ekleyin' : nerede
+          })
         ]),
         el('button', {
           class: 'danger small',
           text: 'Kaldır',
           onclick: async () => {
-            const r = await api.gmailRemoveAccount(a.user);
+            const r = await api.mailRemoveAccount(a.user);
             await refresh(r.state);
             toast(`${a.user} kaldırıldı.`, 'ok');
           }
@@ -611,19 +717,102 @@ function viewScan() {
     accBody.appendChild(list);
   }
 
-  const userInput = el('input', { type: 'text', class: 'grow', placeholder: 'ornek@gmail.com' });
-  const passInput = el('input', { type: 'password', class: 'grow', placeholder: 'Google uygulama şifresi (16 hane)' });
-  // Google sifreyi bosluklu gosteriyor; kullanici oldugu gibi yapistirabilsin.
+  /* ---- yeni hesap ---- */
+
+  accBody.appendChild(el('div', { class: 'hint', style: 'margin-top:14px' }, [
+    el('strong', { text: 'İstediğiniz kadar hesap ekleyebilirsiniz. ' }),
+    'Farklı sağlayıcılar bir arada olabilir; hepsi birlikte taranır ve aynı servis iki hesapta çıkarsa tek kayıtta birleşir.'
+  ]));
+
+  const userInput = el('input', { type: 'text', class: 'grow', placeholder: 'ornek@alanadiniz.com' });
+  const passInput = el('input', { type: 'password', class: 'grow', placeholder: 'Şifre' });
+  const provSelect = el('select', { class: 'grow' }, [
+    el('option', { value: 'auto', text: 'Adrese göre otomatik' }),
+    ...providers.map((p) => el('option', { value: p.id, text: p.label }))
+  ]);
+  const hostInput = el('input', { type: 'text', class: 'grow', placeholder: 'mail.alanadiniz.com' });
+  const portInput = el('input', { type: 'number', class: 'grow', value: '993' });
+  const sslInput = el('input', { type: 'checkbox', checked: true });
+
+  // Saglayicilarin cogu sifreyi dortlu gruplar halinde bosluklu gosteriyor;
+  // kullanici oldugu gibi yapistirabilsin diye bosluklar temizleniyor.
   passInput.addEventListener('input', () => {
     const cleaned = passInput.value.replace(/\s+/g, '');
     if (cleaned !== passInput.value) passInput.value = cleaned;
   });
 
+  const guideBox = el('div', { class: 'field full' });
+  const serverBox = el('div', { class: 'field full', hidden: true }, [
+    el('div', { class: 'form-grid' }, [
+      el('div', { class: 'field' }, [el('label', { text: 'IMAP sunucusu' }), hostInput]),
+      el('div', { class: 'field' }, [el('label', { text: 'Port' }), portInput]),
+      el('div', { class: 'field' }, [
+        el('label', { text: 'Şifreli bağlantı' }),
+        el('label', { class: 'switch' }, [sslInput, el('span', { text: 'SSL/TLS (993). Kapalıysa 143 + STARTTLS denenir.' })])
+      ])
+    ])
+  ]);
+
+  const manual = el('input', { type: 'checkbox' });
+  const manualRow = el('label', { class: 'switch' }, [manual, el('span', { text: 'Sunucu ayarlarını elle gireceğim' })]);
+
+  // Kullanici sunucuyu elle yazdiysa bir daha ustune yazilmaz; yazmadiysa
+  // saglayici ya da alan adi degistikce alan kendiliginden tazelenir.
+  let hostElle = false;
+  hostInput.addEventListener('input', () => { hostElle = true; });
+
+  /** Secili saglayiciya gore form alanlarini ve rehberi tazeler. */
+  function syncProviderUi() {
+    const chosen = provSelect.value === 'auto'
+      ? (detectProvider(userInput.value) || 'gmail')
+      : provSelect.value;
+    const p = providerById(chosen);
+
+    guideBox.textContent = '';
+    guideBox.appendChild(mailGuide(chosen));
+
+    passInput.placeholder = p && p.passwordKind === 'app'
+      ? 'Uygulamaya özel şifre'
+      : 'Posta kutusunun şifresi';
+
+    // Kendi sunucusu olanlarda adres tahmin edilir; alanlar acik gelir ki
+    // kullanici tahmini gorup gerekiyorsa duzeltsin.
+    const needsHost = Boolean(p && p.needsHost);
+    if (needsHost && !manual.checked) manual.checked = true;
+
+    if (!hostElle) {
+      if (needsHost) {
+        const m = /@([^@\s>]+)/.exec(userInput.value.trim().toLowerCase());
+        hostInput.value = m ? `mail.${m[1]}` : '';
+      } else {
+        hostInput.value = (p && p.host) || '';
+        portInput.value = String((p && p.port) || 993);
+        sslInput.checked = p ? p.secure !== false : true;
+      }
+    }
+    serverBox.hidden = !manual.checked;
+  }
+
+  provSelect.addEventListener('change', syncProviderUi);
+  manual.addEventListener('change', syncProviderUi);
+  let sonAdres = '';
+  userInput.addEventListener('input', () => {
+    // Her tusta rehberi yeniden cizmek gereksiz; yalnizca alan adi degisince.
+    const m = /@(.+)$/.exec(userInput.value.trim().toLowerCase());
+    const alan = m ? m[1] : '';
+    if (alan !== sonAdres) { sonAdres = alan; syncProviderUi(); }
+  });
+
   accBody.appendChild(el('div', { class: 'form-grid', style: 'margin-top:14px' }, [
-    el('div', { class: 'field' }, [el('label', { text: 'Gmail adresi' }), userInput]),
-    el('div', { class: 'field' }, [el('label', { text: 'Uygulama şifresi' }), passInput]),
-    el('div', { class: 'field full' }, [gmailGuide()])
+    el('div', { class: 'field' }, [el('label', { text: 'E-posta adresi' }), userInput]),
+    el('div', { class: 'field' }, [el('label', { text: 'Şifre' }), passInput]),
+    el('div', { class: 'field' }, [el('label', { text: 'Sağlayıcı' }), provSelect]),
+    el('div', { class: 'field' }, [el('label', { text: 'Sunucu' }), manualRow]),
+    serverBox,
+    guideBox
   ]));
+
+  syncProviderUi();
 
   accBody.appendChild(el('div', { class: 'filters' }, [
     el('button', {
@@ -633,17 +822,28 @@ function viewScan() {
         const btn = e.target;
         btn.disabled = true;
         btn.textContent = 'Doğrulanıyor...';
-        const r = await api.gmailAddAccount({ user: userInput.value.trim(), appPassword: passInput.value.trim() });
+        const payload = {
+          user: userInput.value.trim(),
+          password: passInput.value.trim()
+        };
+        if (provSelect.value !== 'auto') payload.provider = provSelect.value;
+        if (manual.checked) {
+          if (hostInput.value.trim()) payload.host = hostInput.value.trim();
+          payload.port = Number(portInput.value) || 993;
+          payload.secure = sslInput.checked;
+        }
+        const r = await api.mailAddAccount(payload);
         btn.disabled = false;
         btn.textContent = 'Hesabı ekle ve doğrula';
         if (!r.ok) { toast(r.error, 'err'); return; }
         userInput.value = '';
         passInput.value = '';
         await refresh(r.state);
-        toast('Hesap eklendi ve bağlantı doğrulandı.', 'ok');
+        toast(`Hesap eklendi ve bağlantı doğrulandı (${r.host}).`, 'ok');
       }
     })
   ]));
+
   accPanel.appendChild(accBody);
   wrap.appendChild(accPanel);
 
@@ -679,7 +879,7 @@ function viewScan() {
       if (bar && p.total) bar.style.width = `${Math.round((p.done / p.total) * 100)}%`;
     });
 
-    const r = await api.gmailScan({});
+    const r = await api.mailScan({});
     stop();
     btn.disabled = false;
     btn.textContent = 'Makbuzları tara';
@@ -737,7 +937,7 @@ function viewScan() {
         text: 'Seçilenleri envantere ekle',
         onclick: async () => {
           const picked = checks.filter((c) => c.cb.checked).map((c) => c.rec);
-          const r = await api.gmailApply({ records: picked, cancellations: scanResults.cancellations });
+          const r = await api.mailApply({ records: picked, cancellations: scanResults.cancellations });
           scanResults = null;
           await refresh(r.state);
           const c = (r.cancelled || []).length;
@@ -796,7 +996,7 @@ function viewSettings() {
   panel.appendChild(el('div', { class: 'panel-body' }, [
     el('div', { class: 'form-grid' }, [
       el('div', { class: 'field' }, [el('label', { text: 'Kullanılmadı sayılma eşiği (gün)' }), dormant]),
-      el('div', { class: 'field' }, [el('label', { text: 'Gmail geriye dönük tarama (gün)' }), lookback]),
+      el('div', { class: 'field' }, [el('label', { text: 'Geriye dönük tarama (gün)' }), lookback]),
       el('div', { class: 'field' }, [el('label', { text: 'USD/TRY' }), usd]),
       el('div', { class: 'field' }, [el('label', { text: 'EUR/TRY' }), eur]),
       el('div', { class: 'field' }, [el('label', { text: 'GBP/TRY' }), gbp])
@@ -830,7 +1030,7 @@ function viewSettings() {
     el('h3', {}, ['Otomatik tarama', el('small', { text: s.lastAutoScanAt ? `son: ${shortDate(s.lastAutoScanAt)}` : 'henüz çalışmadı' })])
   ]);
   autoPanel.appendChild(el('div', { class: 'panel-body' }, [
-    el('div', { class: 'hint', text: 'Açıkken uygulama arka planda belirli aralıklarla bağlı Gmail hesaplarını tarar, yeni makbuzları envantere ekler ve iptal bildirimlerini işaretler. Kısa bir geriye dönüş penceresi kullanılır, o yüzden hızlı biter.' }),
+    el('div', { class: 'hint', text: 'Açıkken uygulama arka planda belirli aralıklarla bağlı posta hesaplarını tarar, yeni makbuzları envantere ekler ve iptal bildirimlerini işaretler. Kısa bir geriye dönüş penceresi kullanılır, o yüzden hızlı biter.' }),
     el('label', { class: 'switch', style: 'margin-top:12px' }, [autoOn, el('span', { text: 'Otomatik taramayı aç' })]),
     el('div', { class: 'form-grid', style: 'margin-top:12px' }, [
       el('div', { class: 'field' }, [el('label', { text: 'Tarama aralığı (saat)' }), autoHours]),
@@ -881,7 +1081,7 @@ function viewSettings() {
         text: 'Envanteri sıfırla',
         onclick: () => {
           openModal('Envanteri sıfırla', el('div', { class: 'guide' }, [
-            el('p', { class: 'guide-lead', text: 'Tüm abonelik kayıtları silinir. Gmail hesapların, ayarların ve kurlar durur; yalnızca envanter boşalır.' }),
+            el('p', { class: 'guide-lead', text: 'Tüm abonelik kayıtları silinir. Posta hesapların, ayarların ve kurlar durur; yalnızca envanter boşalır.' }),
             el('div', { class: 'guide-note', text: 'Hatalı bir taramadan sonra temiz başlamak için kullanışlıdır. Geri alınamaz, önce yedek almak isteyebilirsin.' })
           ]), [
             el('button', { class: 'ghost', text: 'Vazgeç', onclick: closeModal }),
@@ -959,7 +1159,12 @@ api.onAutoScan(async (p) => {
   if (parts.length) toast(`Otomatik tarama: ${parts.join(', ')}.`, 'ok');
 });
 
-refresh().then(() => {
-  // Ilk acilista rehberi goster: hic abonelik yoksa ve daha once tamamlanmadiysa.
-  if (state && !state.settings.onboarded && state.subscriptions.length === 0) openOnboarding(0);
-});
+// Saglayici onayarlari bir kez alinir; arayuz rehberleri buna gore ciziliyor.
+api.mailProviders()
+  .then((list) => { providers = list || []; })
+  .catch(() => { providers = []; })
+  .then(() => refresh())
+  .then(() => {
+    // Ilk acilista rehberi goster: hic abonelik yoksa ve daha once tamamlanmadiysa.
+    if (state && !state.settings.onboarded && state.subscriptions.length === 0) openOnboarding(0);
+  });

@@ -11,11 +11,12 @@ contextBridge.exposeInMainWorld('subkill', {
   removeSubscription: (id) => ipcRenderer.invoke('sub:remove', id),
   resetSubscriptions: () => ipcRenderer.invoke('subs:reset'),
 
-  gmailAccounts: () => ipcRenderer.invoke('gmail:accounts'),
-  gmailAddAccount: (creds) => ipcRenderer.invoke('gmail:addAccount', creds),
-  gmailRemoveAccount: (user) => ipcRenderer.invoke('gmail:removeAccount', user),
-  gmailScan: (opts) => ipcRenderer.invoke('gmail:scan', opts),
-  gmailApply: (payload) => ipcRenderer.invoke('gmail:apply', payload),
+  mailProviders: () => ipcRenderer.invoke('mail:providers'),
+  mailAccounts: () => ipcRenderer.invoke('mail:accounts'),
+  mailAddAccount: (creds) => ipcRenderer.invoke('mail:addAccount', creds),
+  mailRemoveAccount: (user) => ipcRenderer.invoke('mail:removeAccount', user),
+  mailScan: (opts) => ipcRenderer.invoke('mail:scan', opts),
+  mailApply: (payload) => ipcRenderer.invoke('mail:apply', payload),
   runAutoScan: () => ipcRenderer.invoke('autoscan:run'),
 
   scanUsage: () => ipcRenderer.invoke('usage:scan'),

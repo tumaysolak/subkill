@@ -1,7 +1,7 @@
 # SubKill
 
 > Aboneliklerini tek panelde toplayan, tamamen yerel çalışan ücretsiz masaüstü
-> uygulaması. macOS ve Windows. Gmail makbuzlarını okuyarak abonelik envanterini
+> uygulaması. macOS ve Windows. Posta kutusundaki makbuzları okuyarak abonelik envanterini
 > kendisi kurar; kullanılmayan, çakışan ve yenilemesi yaklaşan abonelikleri bildirir.
 
 SubKill, yapay zeka araçları ve SaaS aboneliklerinin sayısı arttıkça kontrolün
@@ -22,10 +22,14 @@ bilgisayarından kurulur ve hiçbir veri dışarıya gönderilmez.
 
 ## Ne yapar
 
-- Gmail kutusundaki fatura ve makbuz maillerini IMAP üzerinden tarar; servis adı,
+- Posta kutusundaki fatura ve makbuz maillerini IMAP üzerinden tarar; servis adı,
   tutar, para birimi, ödeme periyodu ve yenileme tarihini otomatik çıkarır.
-- Birden fazla Gmail hesabı bağlanabilir; hepsi birlikte taranır ve aynı servis
-  iki hesapta çıkarsa tek kayıtta birleşir.
+- Birden fazla hesap bağlanabilir; hepsi birlikte taranır ve aynı servis iki hesapta
+  çıkarsa tek kayıtta birleşir.
+- IMAP destekleyen her kutu bağlanır: Gmail, iCloud, Outlook, Yandex, Yahoo, Zoho ve
+  kendi alan adındaki kutular (hosting, cPanel, Plesk, kurumsal sunucu). Bilinen
+  sağlayıcılarda sunucu ayarları hazır gelir; kendi alan adında sunucu adresten
+  tahmin edilir (genelde mail.alanadi.com, port 993 SSL) ve elle düzeltilebilir.
 - Otomatik tarama: belirli aralıklarla bağlı hesapları tarayıp yeni makbuzları
   envantere ekler.
 - İptal tespiti: iptal bildirimi maillerini tanır; bildirim yoksa yenilemesi
@@ -42,7 +46,7 @@ bilgisayarından kurulur ve hiçbir veri dışarıya gönderilmez.
 
 - Sunucu yok, hesap yok, telemetri yok.
 - Abonelik envanteri kullanıcının makinesinde tek bir JSON dosyasında durur.
-- Gmail uygulama şifresi işletim sisteminin güvenli kasasında (macOS Keychain,
+- Posta şifresi işletim sisteminin güvenli kasasında (macOS Keychain,
   Windows DPAPI) saklanır; veri dosyasına yazılmaz.
 - Servislerin parolaları hiçbir zaman istenmez ve saklanmaz; yalnızca hangi
   hesapla, hangi yöntemle giriş yapıldığı bilgisi tutulur.

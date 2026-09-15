@@ -27,14 +27,14 @@
       "inLanguage": "tr-TR",
       "url": "https://getsubkill.com",
       "downloadUrl": "https://github.com/tumaysolak/subkill/releases",
-      "softwareVersion": "1.1.1",
+      "softwareVersion": "1.2.0",
       "license": "https://opensource.org/licenses/MIT",
-      "description": "Aboneliklerini tek panelde toplayan, tamamen yerel çalışan ücretsiz masaüstü uygulaması. Gmail makbuzlarını okuyarak abonelik envanterini kendisi kurar; kullanılmayan, çakışan ve yenilemesi yaklaşan abonelikleri bildirir.",
+      "description": "Aboneliklerini tek panelde toplayan, tamamen yerel çalışan ücretsiz masaüstü uygulaması. Posta kutundaki makbuzları okuyarak abonelik envanterini kendisi kurar; kullanılmayan, çakışan ve yenilemesi yaklaşan abonelikleri bildirir.",
       "featureList": [
-        "Gmail makbuzlarından otomatik abonelik envanteri",
+        "Posta kutusundaki makbuzlardan otomatik abonelik envanteri",
         "Tarayıcı geçmişinden kullanım tespiti",
         "Aynı kategorideki aboneliklerin çakışma analizi",
-        "Birden fazla Gmail hesabını birlikte tarama",
+        "Gmail, iCloud, Outlook, Yandex ve kendi alan adındaki kutuları IMAP ile tarama",
         "Günlük otomatik tarama ve iptal tespiti",
         "Ücretsiz deneme bitiş hatırlatması",
         "12 aylık yenileme takvimi",
@@ -86,15 +86,15 @@
           "name": "Verilerim nereye gidiyor?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hiçbir yere. SubKill'in sunucusu yok. Abonelik envanterin kendi bilgisayarındaki tek bir dosyada durur, posta kutusu bağlantısı doğrudan senin makinenden Gmail'e gider. Uygulama telemetri toplamaz."
+            "text": "Hiçbir yere. SubKill'in sunucusu yok. Abonelik envanterin kendi bilgisayarındaki tek bir dosyada durur, posta kutusu bağlantısı doğrudan senin makinenden posta sunucusuna gider. Uygulama telemetri toplamaz."
           }
         },
         {
           "@type": "Question",
-          "name": "Gmail şifremi girmem gerekiyor mu?",
+          "name": "Posta şifremi girmem gerekiyor mu?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hayır. Hesap parolan istenmez ve çalışmaz. Google hesabından ürettiğin 16 haneli bir uygulama şifresi kullanılır. Bu şifre işletim sisteminin güvenli kasasında saklanır ve istediğin an Google tarafından iptal edilebilir."
+            "text": "Gmail, iCloud, Outlook, Yandex gibi kutularda hesap parolan istenmez ve çalışmaz; o sağlayıcıdan ürettiğin, yalnızca bu uygulamaya ait bir şifre kullanılır ve istediğin an iptal edebilirsin. Kendi alan adındaki kutularda (hosting, cPanel) posta kutusunun kendi şifresi kullanılır. Her iki durumda da şifre işletim sisteminin güvenli kasasında saklanır, veri dosyasına yazılmaz."
           }
         },
         {
@@ -123,10 +123,10 @@
         },
         {
           "@type": "Question",
-          "name": "Birden fazla Gmail hesabı bağlayabilir miyim?",
+          "name": "Birden fazla posta hesabı bağlayabilir miyim?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Evet, istediğin kadar. Tarama hepsini birlikte okur; aynı servis iki hesapta çıkarsa tek kayıtta birleşir. Her hesabın uygulama şifresi işletim sisteminin güvenli kasasında ayrı ayrı saklanır."
+            "text": "Evet, istediğin kadar ve farklı sağlayıcılardan. Tarama hepsini birlikte okur; aynı servis iki hesapta çıkarsa tek kayıtta birleşir. Her hesabın şifresi işletim sisteminin güvenli kasasında ayrı ayrı saklanır."
           }
         },
         {
@@ -139,10 +139,10 @@
         },
         {
           "@type": "Question",
-          "name": "Gmail dışında bir posta kutusu kullanabilir miyim?",
+          "name": "Gmail dışında bir posta kutusu, mesela hosting mailim kullanılabilir mi?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Şu an otomatik tarama Gmail için çalışıyor. Diğer kutular için abonelikleri elle ekleyebilir veya CSV olarak içe aktarabilirsin."
+            "text": "Evet. IMAP destekleyen her kutu bağlanır: Gmail, iCloud, Outlook, Yandex, Yahoo, Zoho ve kendi alan adındaki kutular (hosting paketi, cPanel, Plesk, kurumsal sunucu). Bilinen sağlayıcılarda sunucu ayarları hazır gelir. Kendi alan adında ise adresinden sunucu tahmin edilir (genelde mail.alanadin.com, port 993 SSL); tahmin tutmazsa hosting panelindeki posta ayarlarında yazan adresi elle girersin. Kullanıcı adı tam e-posta adresi, şifre de posta kutusunun kendi şifresidir."
           }
         },
         {
@@ -236,9 +236,10 @@
     <h2 class="center">SubKill nedir?</h2>
     <p class="prose">
       SubKill, yapay zeka araçlarından SaaS hesaplarına kadar tüm aboneliklerini tek yerde
-      toplayan, macOS ve Windows için ücretsiz bir masaüstü uygulamasıdır. Gmail kutundaki
+      toplayan, macOS ve Windows için ücretsiz bir masaüstü uygulamasıdır. Posta kutundaki
       fatura ve makbuzları IMAP üzerinden okuyup servis adını, tutarı, para birimini, ödeme
-      periyodunu ve yenileme tarihini kendisi çıkarır. Birden fazla hesap bağlanabilir. Tarayıcı
+      periyodunu ve yenileme tarihini kendisi çıkarır. Gmail, iCloud, Outlook, Yandex ve kendi
+      alan adındaki kutular (hosting, cPanel) bağlanabilir; hepsi birlikte taranır. Tarayıcı
       geçmişinden her servise en son ne zaman girdiğini bulur; böylece ödemeye devam ettiğin
       ama aylardır açmadığın hesaplar ortaya çıkar. Sunucusu yoktur: envanter senin
       makinendeki tek bir dosyada durur, posta kutusu bağlantısı doğrudan bilgisayarından
@@ -253,12 +254,12 @@
       <div class="step">
         <span class="num">1</span>
         <h3>Makbuzları tara</h3>
-        <p>Gmail uygulama şifreni gir. Uygulama fatura maillerini ayıklayıp envanteri kurar; hangi servise ne ödediğin ilk taramada çıkar.</p>
+        <p>Posta adresini ve o kutuya ait şifreyi gir. Uygulama fatura maillerini ayıklayıp envanteri kurar; hangi servise ne ödediğin ilk taramada çıkar.</p>
       </div>
       <div class="step">
         <span class="num">2</span>
         <h3>Hesapları ekle, gerisi kendiliğinden</h3>
-        <p>Birden fazla Gmail hesabı bağlayabilirsin; hepsi birlikte taranır. Otomatik tarama açıkken uygulama günde bir kez yeni makbuz geldi mi diye bakar.</p>
+        <p>Birden fazla hesap bağlayabilirsin, farklı sağlayıcılardan olabilir; hepsi birlikte taranır. Otomatik tarama açıkken uygulama günde bir kez yeni makbuz geldi mi diye bakar.</p>
       </div>
       <div class="step">
         <span class="num">3</span>
@@ -308,8 +309,8 @@
       <h2>Veri bilgisayarından çıkmaz</h2>
       <p>
         SubKill'in sunucusu yok. Envanterin makinendeki tek bir dosyada durur; posta kutuna
-        bağlantı doğrudan senin bilgisayarından Gmail'e gider, aradan kimse geçmez. Gmail
-        uygulama şifren işletim sisteminin güvenli kasasında saklanır, veri dosyasına yazılmaz.
+        bağlantı doğrudan senin bilgisayarından posta sunucusuna gider, aradan kimse geçmez.
+        Posta şifren işletim sisteminin güvenli kasasında saklanır, veri dosyasına yazılmaz.
         Hesap açmıyorsun, giriş yapmıyorsun, abone olmuyorsun.
       </p>
       <p>
@@ -348,11 +349,11 @@
       </details>
       <details>
         <summary>Verilerim nereye gidiyor?</summary>
-        <p>Hiçbir yere. SubKill'in sunucusu yok. Abonelik envanterin kendi bilgisayarındaki tek bir dosyada durur, posta kutusu bağlantısı doğrudan senin makinenden Gmail'e gider. Uygulama telemetri toplamaz.</p>
+        <p>Hiçbir yere. SubKill'in sunucusu yok. Abonelik envanterin kendi bilgisayarındaki tek bir dosyada durur, posta kutusu bağlantısı doğrudan senin makinenden posta sunucusuna gider. Uygulama telemetri toplamaz.</p>
       </details>
       <details>
-        <summary>Gmail şifremi girmem gerekiyor mu?</summary>
-        <p>Hayır. Hesap parolan istenmez ve çalışmaz. Google hesabından ürettiğin 16 haneli bir uygulama şifresi kullanılır. Bu şifre işletim sisteminin güvenli kasasında saklanır ve istediğin an Google tarafından iptal edilebilir.</p>
+        <summary>Posta şifremi girmem gerekiyor mu?</summary>
+        <p>Gmail, iCloud, Outlook, Yandex gibi kutularda hesap parolan istenmez ve çalışmaz; o sağlayıcıdan ürettiğin, yalnızca bu uygulamaya ait bir şifre kullanılır ve istediğin an iptal edebilirsin. Kendi alan adındaki kutularda (hosting, cPanel) posta kutusunun kendi şifresi kullanılır. Her iki durumda da şifre işletim sisteminin güvenli kasasında saklanır, veri dosyasına yazılmaz.</p>
       </details>
       <details>
         <summary>Servislerin şifrelerini saklıyor mu?</summary>
@@ -367,16 +368,16 @@
         <p>Hayır. Hangi aboneliğin boşa gittiğini gösterir ve yıllık maliyetini yazar; iptal kararını ve işlemini sen yaparsın.</p>
       </details>
       <details>
-        <summary>Birden fazla Gmail hesabı bağlayabilir miyim?</summary>
-        <p>Evet, istediğin kadar. Tarama hepsini birlikte okur; aynı servis iki hesapta çıkarsa tek kayıtta birleşir. Her hesabın uygulama şifresi işletim sisteminin güvenli kasasında ayrı ayrı saklanır.</p>
+        <summary>Birden fazla posta hesabı bağlayabilir miyim?</summary>
+        <p>Evet, istediğin kadar ve farklı sağlayıcılardan. Tarama hepsini birlikte okur; aynı servis iki hesapta çıkarsa tek kayıtta birleşir. Her hesabın şifresi işletim sisteminin güvenli kasasında ayrı ayrı saklanır.</p>
       </details>
       <details>
         <summary>Her seferinde elle taramak zorunda mıyım?</summary>
         <p>Hayır. Otomatik tarama açık geldiğinde uygulama belirli aralıklarla bağlı hesaplara bakar, yeni makbuzları envantere ekler ve iptal bildirimlerini işaretler. Aralığı Ayarlar sekmesinden değiştirebilir, istersen tamamen kapatabilirsin.</p>
       </details>
       <details>
-        <summary>Gmail dışında bir posta kutusu kullanabilir miyim?</summary>
-        <p>Şu an otomatik tarama Gmail için çalışıyor. Diğer kutular için abonelikleri elle ekleyebilir veya CSV olarak içe aktarabilirsin.</p>
+        <summary>Gmail dışında bir posta kutusu, mesela hosting mailim kullanılabilir mi?</summary>
+        <p>Evet. IMAP destekleyen her kutu bağlanır: Gmail, iCloud, Outlook, Yandex, Yahoo, Zoho ve kendi alan adındaki kutular (hosting paketi, cPanel, Plesk, kurumsal sunucu). Bilinen sağlayıcılarda sunucu ayarları hazır gelir. Kendi alan adında ise adresinden sunucu tahmin edilir (genelde mail.alanadin.com, port 993 SSL); tahmin tutmazsa hosting panelindeki posta ayarlarında yazan adresi elle girersin. Kullanıcı adı tam e-posta adresi, şifre de posta kutusunun kendi şifresidir.</p>
       </details>
       <details>
         <summary>macOS "SubKill hasar görmüş" diyor, ne yapmalıyım?</summary>

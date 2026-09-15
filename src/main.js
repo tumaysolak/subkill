@@ -17,13 +17,16 @@ function userDataFile(name) {
   return path.join(app.getPath('userData'), name);
 }
 
-/* ---------- Gmail uygulama sifresi: isletim sisteminin kasasinda ---------- */
+/* ---------- Posta sifresi: isletim sisteminin kasasinda ---------- */
 
-// Her Gmail hesabinin sifresi ayri dosyada; dosya adi adresin ozetinden
-// turetiliyor ki adres dosya adina yazilmasin.
+// Her hesabin sifresi ayri dosyada; dosya adi adresin ozetinden turetiliyor
+// ki adres dosya adina yazilmasin.
+function secretTag(user) {
+  return crypto.createHash('sha256').update(String(user).trim().toLowerCase()).digest('hex').slice(0, 16);
+}
+
 function secretPathFor(user) {
-  const tag = crypto.createHash('sha256').update(String(user).trim().toLowerCase()).digest('hex').slice(0, 16);
-  return userDataFile(`gmail-${tag}.secret`);
+  return userDataFile(`mailbox-${secretTag(user)}.secret`);
 }
 
 function savePassword(user, plain) {
@@ -47,12 +50,27 @@ function forgetPassword(user) {
 }
 
 
-/** Eski surumdeki tek gmail.secret dosyasini ilk hesaba tasir. */
+/**
+ * Eski surumlerin kasa dosyalarini yeni adlariyla tasir.
+ *  - gmail.secret          : tek hesapli donemden kalma, ilk hesaba yazilir
+ *  - gmail-<ozet>.secret   : cok hesapli donemden kalma, adi degisiyor
+ * Icerik acilmadan yeniden adlandirildigi icin kullanici sifreyi tekrar
+ * girmek zorunda kalmaz.
+ */
 function migrateLegacySecret() {
+  const accounts = store.get().settings.mailAccounts || [];
+
+  for (const a of accounts) {
+    const eski = userDataFile(`gmail-${secretTag(a.user)}.secret`);
+    const yeni = secretPathFor(a.user);
+    try {
+      if (fs.existsSync(eski) && !fs.existsSync(yeni)) fs.renameSync(eski, yeni);
+    } catch (_) { /* tasinamazsa kullanici sifreyi yeniden girer */ }
+  }
+
   const legacy = userDataFile('gmail.secret');
   try {
     if (!fs.existsSync(legacy)) return;
-    const accounts = store.get().settings.gmailAccounts || [];
     if (accounts.length && safeStorage.isEncryptionAvailable()) {
       const plain = safeStorage.decryptString(fs.readFileSync(legacy));
       if (plain) savePassword(accounts[0].user, plain);
@@ -74,7 +92,7 @@ async function runAutoScan(reason) {
   const st = store.get().settings;
   if (!st.autoScan) return { ok: false, skipped: 'kapali' };
 
-  const accounts = (st.gmailAccounts || []).filter((a) => readPassword(a.user));
+  const accounts = (st.mailAccounts || []).filter((a) => readPassword(a.user));
   if (!accounts.length) return { ok: false, skipped: 'hesap yok' };
 
   const res = await scanAccounts(accounts.map((a) => a.user), {
@@ -116,7 +134,7 @@ function startAutoScan() {
 
 /** Verilen hesaplari sirayla tarar ve sonuclari birlestirir. */
 async function scanAccounts(users, opts = {}) {
-  const gmail = require('./services/gmail');
+  const mail = require('./services/mail');
   const lookbackDays = opts.lookbackDays || store.get().settings.lookbackDays;
   const all = [];
   const cancellations = [];
@@ -124,12 +142,13 @@ async function scanAccounts(users, opts = {}) {
   const errors = [];
 
   for (const user of users) {
+    const account = store.getMailAccount(user) || { user };
     const pass = readPassword(user);
-    if (!pass) { errors.push(`${user}: uygulama şifresi yok`); continue; }
+    if (!pass) { errors.push(`${user}: şifre kayıtlı değil`); continue; }
     try {
-      const report = await gmail.scan({
-        user,
-        appPassword: pass,
+      const report = await mail.scan({
+        ...account,
+        password: pass,
         lookbackDays,
         onProgress: (p) => {
           if (win && !win.isDestroyed()) win.webContents.send('scan:progress', { ...p, user });
@@ -139,7 +158,7 @@ async function scanAccounts(users, opts = {}) {
       cancellations.push(...(report.cancellations || []));
       perAccount.push({ user, scanned: report.scanned, matched: report.matched, cancellations: (report.cancellations || []).length });
     } catch (err) {
-      errors.push(`${user}: ${friendlyGmailError(err)}`);
+      errors.push(`${user}: ${friendlyMailError(err, account)}`);
     }
   }
 
@@ -197,8 +216,14 @@ app.on('window-all-closed', () => {
 function buildState() {
   const data = store.get();
   const opts = { rates: data.settings.rates, base: data.settings.base, dormantDays: data.settings.dormantDays };
+  // Sifreler kasada duruyor, veri dosyasinda degil; arayuzun "sifre kayitli mi"
+  // bilgisine ihtiyaci oldugu icin burada isaretleniyor.
+  const mailAccounts = (data.settings.mailAccounts || []).map((a) => ({
+    ...a,
+    hasPassword: Boolean(readPassword(a.user))
+  }));
   return {
-    settings: data.settings,
+    settings: { ...data.settings, mailAccounts },
     subscriptions: data.subscriptions,
     scans: data.scans,
     categories: CATEGORIES,
@@ -232,7 +257,7 @@ ipcMain.handle('sub:remove', (_e, id) => {
   return buildState();
 });
 
-/* ---------- Gmail ---------- */
+/* ---------- Posta hesaplari ---------- */
 
 ipcMain.handle('subs:reset', () => {
   const d = store.get();
@@ -242,38 +267,49 @@ ipcMain.handle('subs:reset', () => {
   return { ok: true, state: buildState() };
 });
 
-ipcMain.handle('gmail:accounts', () => {
+ipcMain.handle('mail:providers', () => require('./core/providers').list());
+
+ipcMain.handle('mail:accounts', () => {
   const st = store.get().settings;
-  return (st.gmailAccounts || []).map((a) => ({ ...a, hasPassword: Boolean(readPassword(a.user)) }));
+  return (st.mailAccounts || []).map((a) => ({ ...a, hasPassword: Boolean(readPassword(a.user)) }));
 });
 
-ipcMain.handle('gmail:addAccount', async (_e, creds) => {
-  const gmail = require('./services/gmail');
+ipcMain.handle('mail:addAccount', async (_e, creds) => {
+  const mail = require('./services/mail');
   const user = String((creds && creds.user) || '').trim().toLowerCase();
-  const pass = (creds && creds.appPassword) || readPassword(user);
-  if (!user || !pass) return { ok: false, error: 'Gmail adresi ve uygulama şifresi gerekli.' };
+  const pass = (creds && (creds.password || creds.appPassword)) || readPassword(user);
+  if (!user || !pass) return { ok: false, error: 'E-posta adresi ve şifre gerekli.' };
   try {
-    const res = await gmail.testConnection({ user, appPassword: pass });
-    if (creds.appPassword) savePassword(user, creds.appPassword);
-    store.addGmailAccount(user);
+    // Sunucu adresi tahmin edilmis olabilir; baglanti kurulan adres kaydediliyor
+    // ki sonraki taramalarda adaylar bastan denenmesin.
+    const res = await mail.testConnection({
+      user,
+      password: pass,
+      provider: creds.provider,
+      host: creds.host,
+      port: creds.port,
+      secure: creds.secure
+    });
+    if (creds.password || creds.appPassword) savePassword(user, creds.password || creds.appPassword);
+    store.addMailAccount({ user, provider: res.provider, host: res.host, port: res.port, secure: res.secure });
     return { ok: true, ...res, state: buildState() };
   } catch (err) {
-    return { ok: false, error: friendlyGmailError(err) };
+    return { ok: false, error: friendlyMailError(err, creds) };
   }
 });
 
-ipcMain.handle('gmail:removeAccount', (_e, user) => {
+ipcMain.handle('mail:removeAccount', (_e, user) => {
   forgetPassword(user);
-  store.removeGmailAccount(user);
+  store.removeMailAccount(user);
   return { ok: true, state: buildState() };
 });
 
-ipcMain.handle('gmail:scan', async (_e, opts) => {
+ipcMain.handle('mail:scan', async (_e, opts) => {
   const st = store.get().settings;
   const users = (opts && opts.users && opts.users.length)
     ? opts.users
-    : (st.gmailAccounts || []).map((a) => a.user);
-  if (!users.length) return { ok: false, error: 'Önce en az bir Gmail hesabı eklenmeli.' };
+    : (st.mailAccounts || []).map((a) => a.user);
+  if (!users.length) return { ok: false, error: 'Önce en az bir posta hesabı eklenmeli.' };
 
   const res = await scanAccounts(users, opts || {});
   if (!res.ok) return res;
@@ -288,7 +324,7 @@ ipcMain.handle('gmail:scan', async (_e, opts) => {
   };
 });
 
-ipcMain.handle('gmail:apply', (_e, payload) => {
+ipcMain.handle('mail:apply', (_e, payload) => {
   const records = Array.isArray(payload) ? payload : (payload && payload.records) || [];
   const cancellations = (payload && payload.cancellations) || [];
   const result = store.mergeScanned(records);
@@ -301,13 +337,39 @@ ipcMain.handle('autoscan:run', async () => {
   return { ...r, state: buildState() };
 });
 
-function friendlyGmailError(err) {
+/**
+ * Ham IMAP hatasini kullanicinin anlayacagi bir cumleye cevirir.
+ * Mesaj saglayiciya gore degisiyor: Gmail'de sorun neredeyse her zaman
+ * uygulama sifresi, kendi sunucusunda ise sunucu adi ya da port.
+ */
+function friendlyMailError(err, account) {
   const msg = String((err && err.message) || err);
-  if (/AUTHENTICATIONFAILED|Invalid credentials|LOGIN failed/i.test(msg)) {
-    return 'Gmail girişi reddedildi. Hesap parolası değil, Google "uygulama şifresi" gerekiyor (myaccount.google.com/apppasswords).';
+  const providers = require('./core/providers');
+  const cfg = providers.resolve(account || {});
+  const gmail = cfg.provider === 'gmail';
+  const appSifre = cfg.passwordKind === 'app';
+
+  if (/AUTHENTICATIONFAILED|Invalid credentials|LOGIN failed|AUTHENTICATE failed|Authentication failed/i.test(msg)) {
+    if (gmail) return 'Gmail girişi reddedildi. Hesap parolası değil, Google "uygulama şifresi" gerekiyor (myaccount.google.com/apppasswords).';
+    if (appSifre) return `${cfg.label} girişi reddedildi. Hesap parolası değil, uygulamaya özel şifre gerekiyor.`;
+    return 'Giriş reddedildi. Kullanıcı adı genelde tam e-posta adresidir; şifre posta kutusunun kendi şifresidir.';
   }
-  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED/i.test(msg)) return 'Gmail sunucusuna ulaşılamadı. İnternet bağlantısını kontrol edin.';
-  if (/IMAP.*disabled|\[ALERT\]/i.test(msg)) return 'Gmail hesabında IMAP kapalı olabilir. Gmail ayarlarından IMAP erişimini açın.';
+  if (/ENOTFOUND|EAI_AGAIN/i.test(msg)) {
+    return cfg.guessed
+      ? `Sunucu bulunamadı. Denenen adresler: ${cfg.hosts.join(', ')}. Doğru adresi hosting panelinizdeki posta ayarlarından alıp Sunucu alanına yazın.`
+      : `${cfg.host} adresi bulunamadı. Sunucu adresini kontrol edin.`;
+  }
+  if (/ETIMEDOUT|ECONNREFUSED|ECONNRESET|Connection timeout|closed unexpectedly/i.test(msg)) {
+    return `${cfg.host || 'Sunucu'} bağlantısı kurulamadı. Port ${cfg.port} ve SSL ayarını kontrol edin; çoğu sunucuda 993 SSL, bazılarında 143 kullanılır.`;
+  }
+  if (/self.signed|certificate|CERT_/i.test(msg)) {
+    return `${cfg.host} sertifikası doğrulanamadı. Hosting panelinde yazan sunucu adını birebir kullanın; alan adı yerine sunucunun kendi adı (örnek: srv12.hosting.com) gerekebilir.`;
+  }
+  if (/IMAP.*disabled|\[ALERT\]/i.test(msg)) {
+    return gmail
+      ? 'Gmail hesabında IMAP kapalı olabilir. Gmail ayarlarından IMAP erişimini açın.'
+      : 'Sunucu IMAP erişimini reddetti. Posta kutusunda IMAP açık mı, panelden kontrol edin.';
+  }
   return msg;
 }
 

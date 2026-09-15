@@ -46,12 +46,13 @@ await step('ilk acilista kurulum rehberi cikiyor', async () => {
   assert.strictEqual(dots, 3, `3 adim bekleniyordu, ${dots} bulundu`);
 });
 
-await step('rehberde ileri gidilebiliyor ve gmail adimi anlatiliyor', async () => {
+await step('rehberde ileri gidilebiliyor ve posta adimi anlatiliyor', async () => {
   await win.locator('.modal-foot button.primary').click();
   await win.waitForTimeout(250);
   const body = await win.locator('.modal-body').innerText();
-  assert.match(body, /2 Adımlı Doğrulama/, 'iki adimli dogrulama uyarisi yok');
-  assert.match(body, /uygulama şifresi/i, 'uygulama sifresi anlatimi yok');
+  assert.match(body, /Nasıl bağlanır/, 'baglanti anlatimi yok');
+  assert.match(body, /uygulamaya özel şifre/i, 'uygulamaya ozel sifre anlatimi yok');
+  assert.match(body, /cPanel/i, 'kendi sunucusu secenegi anlatilmiyor');
 });
 
 await step('rehber atlanabiliyor ve bir daha acilmiyor', async () => {
@@ -71,7 +72,7 @@ await step('panel acildi ve dort ozet karti var', async () => {
 
 await step('bos envanterde yonlendirme mesaji gorunuyor', async () => {
   const text = await win.locator('#view').innerText();
-  assert.ok(/Uyarı yok|Gmail taraması/i.test(text), 'bos durum mesaji yok');
+  assert.ok(/Uyarı yok|posta taraması/i.test(text), 'bos durum mesaji yok');
 });
 
 await step('yeni abonelik formu aciliyor', async () => {
@@ -122,13 +123,41 @@ await step('takvim sekmesi 12 ay ciziyor', async () => {
   assert.strictEqual(rows, 12, `12 ay bekleniyordu, ${rows} bulundu`);
 });
 
-await step('tarama sekmesi coklu gmail hesabini gosteriyor', async () => {
+await step('tarama sekmesi coklu posta hesabini gosteriyor', async () => {
   await win.click('#nav button[data-view="tarama"]');
   await win.waitForSelector('input[type="password"]', { timeout: 5000 });
   const text = await win.locator('#view').innerText();
-  assert.match(text, /Bağlı Gmail hesapları/i, 'hesap listesi paneli yok');
-  assert.match(text, /istediğiniz kadar hesap/i, 'coklu hesap anlatilmiyor');
+  assert.match(text, /Bağlı posta hesapları/i, 'hesap listesi paneli yok');
+  // DIKKAT: Turkce'de buyuk "İ" harfi /i/ bayragiyla "i" ile eslesmez (Unicode'da
+  // nokta ayri bir isaret olarak kaliyor). Bu yuzden cumlenin bas harfi degil,
+  // kucuk harfle basladigi bilinen bir parcasi aranir.
+  assert.match(text, /kadar hesap ekleyebilirsiniz/i, 'coklu hesap anlatilmiyor');
   assert.match(text, /uygulama şifresi/i);
+});
+
+await step('saglayici listesi gmail disindaki kutulari da sunuyor', async () => {
+  const secenekler = await win.locator('#view select option').evaluateAll((els) => els.map((e) => e.value));
+  for (const beklenen of ['auto', 'gmail', 'icloud', 'outlook', 'yandex', 'custom']) {
+    assert.ok(secenekler.includes(beklenen), `${beklenen} saglayicisi listede yok`);
+  }
+});
+
+await step('kendi sunucusu secilince sunucu alanlari ve cPanel rehberi aciliyor', async () => {
+  await win.locator('#view select').selectOption('custom');
+  await win.waitForTimeout(250);
+  const text = await win.locator('#view').innerText();
+  assert.match(text, /IMAP sunucusu/i, 'sunucu alani gorunmuyor');
+  assert.match(text, /cPanel/i, 'kendi sunucusu rehberi yok');
+  assert.match(text, /mail\.alanadiniz\.com/i, 'sunucu ornegi verilmiyor');
+
+  const port = await win.locator('#view input[type="number"]').first().inputValue();
+  assert.strictEqual(port, '993', 'varsayilan port 993 olmali');
+
+  // Adres yazildiginda sunucu alani alan adindan doldurulmali.
+  await win.locator('#view input[type="text"]').first().fill('info@sirketim.com.tr');
+  await win.waitForTimeout(300);
+  const host = await win.locator('#view input[type="text"]').nth(1).inputValue();
+  assert.strictEqual(host, 'mail.sirketim.com.tr', `sunucu tahmini yanlis: ${host}`);
 });
 
 await step('hesap yokken tarama dugmesi kapali', async () => {

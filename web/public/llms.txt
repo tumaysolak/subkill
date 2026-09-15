@@ -29,7 +29,8 @@ bilgisayarından kurulur ve hiçbir veri dışarıya gönderilmez.
   süredir kullanılmayan abonelikleri yıllık maliyetiyle listeler.
 - Aynı kategorideki abonelikleri aylık yükleri ve son kullanım tarihleriyle yan
   yana koyarak işlevsel çakışmaları gösterir.
-- Kart bazlı aylık yükü hesaplar; tanımlanan limite yaklaşıldığında uyarır.
+- Kartın son dört hanesi makbuzlardan okunur; elle kart eklenmez. Kart bazlı aylık
+  yükü hesaplar ve yazılan limite yaklaşıldığında uyarır.
 - Ücretsiz deneme süreleri bitmeden önce hatırlatır.
 - 12 aylık yenileme takvimi çıkarır; yıllık abonelikler düştükleri ayda görünür.
 - TCMB kuruyla TL karşılıklarını hesaplar.

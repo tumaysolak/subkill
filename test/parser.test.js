@@ -35,12 +35,6 @@ test('detectCycle: yillik ve aylik', () => {
   assert.strictEqual(parser.detectCycle('pay-as-you-go usage'), 'usage');
 });
 
-test('detectCardLast4', () => {
-  assert.strictEqual(parser.detectCardLast4('Visa ending in 2559'), '2559');
-  assert.strictEqual(parser.detectCardLast4('Kart **** 1187'), '1187');
-  assert.strictEqual(parser.detectCardLast4('hicbir kart yok'), null);
-});
-
 test('parseDateFrom: dort bicim', () => {
   assert.strictEqual(parser.parseDateFrom('date 2026-03-15'), '2026-03-15');
   assert.strictEqual(parser.parseDateFrom('15.03.2026 tarihli'), '2026-03-15');
@@ -71,7 +65,6 @@ test('parseReceipt: Anthropic aylik makbuzu', () => {
   assert.strictEqual(r.amount, 200);
   assert.strictEqual(r.currency, 'USD');
   assert.strictEqual(r.cycle, 'monthly');
-  assert.strictEqual(r.cardLast4, '2559');
   assert.strictEqual(r.category, 'llm_chat');
   assert.strictEqual(r.nextRenewal, '2026-09-30');
 });
@@ -112,13 +105,12 @@ test('parseReceipt: deneme suresi yakalanir', () => {
 
 test('consolidate: ayni servisin makbuzlari birlesir, en yeni kazanir', () => {
   const rows = [
-    { name: 'Notion', amount: 10, currency: 'USD', cycle: 'monthly', lastCharge: '2026-07-01', cardLast4: null },
-    { name: 'Notion', amount: 12, currency: 'USD', cycle: 'monthly', lastCharge: '2026-08-01', cardLast4: '1187' }
+    { name: 'Notion', amount: 10, currency: 'USD', cycle: 'monthly', lastCharge: '2026-07-01' },
+    { name: 'Notion', amount: 12, currency: 'USD', cycle: 'monthly', lastCharge: '2026-08-01' }
   ];
   const out = parser.consolidate(rows);
   assert.strictEqual(out.length, 1);
   assert.strictEqual(out[0].amount, 12);
-  assert.strictEqual(out[0].cardLast4, '1187');
   assert.strictEqual(out[0].chargeCount, 2);
 });
 

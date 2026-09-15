@@ -120,7 +120,7 @@ class Store {
   /**
    * Tarama sonuclarini mevcut kayitlarla birlestirir.
    * Elle girilen alanlar (loginMethod, loginEmail, notes, monthlyLimit) korunur;
-   * tarama sadece para/tarih/kart alanlarini tazeler.
+   * tarama sadece para ve tarih alanlarini tazeler.
    */
   /* ---------------- gmail hesaplari ---------------- */
 

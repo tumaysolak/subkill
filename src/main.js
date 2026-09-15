@@ -373,7 +373,7 @@ ipcMain.handle('data:import', async () => {
 
 const CSV_COLUMNS = [
   'name', 'plan', 'amount', 'currency', 'cycle', 'nextRenewal', 'lastCharge',
-  'cardLast4', 'billingEmail', 'loginMethod', 'loginEmail', 'category',
+  'billingEmail', 'loginMethod', 'loginEmail', 'category',
   'site', 'lastUsedAt', 'status', 'trialEndsAt', 'notes'
 ];
 

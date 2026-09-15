@@ -162,19 +162,6 @@ function detectCycle(text) {
   return null;
 }
 
-const CARD_PATTERNS = [
-  /(?:ending in|ending with|son(?:u)?\s|biten|\*{2,}|•{2,}|x{2,}|\.{4,})\s*(\d{4})\b/i,
-  /\b(?:card|kart)\D{0,20}(\d{4})\b/i
-];
-
-function detectCardLast4(text) {
-  const t = String(text || '');
-  for (const re of CARD_PATTERNS) {
-    const m = t.match(re);
-    if (m && m[1]) return m[1];
-  }
-  return null;
-}
 
 const DATE_PATTERNS = [
   // 2026-03-15
@@ -457,7 +444,6 @@ function parseReceipt(mail) {
     lastCharge,
     nextRenewal,
     trialEndsAt,
-    cardLast4: detectCardLast4(haystack),
     billingEmail: mail.to || '',
     category: entry ? entry.category : catalog.guessCategory(name),
     site: entry ? entry.site : catalog.siteFor(name),
@@ -495,6 +481,6 @@ module.exports = {
   parseCancellation,
   normalizeName,
   domainOf, looksLikeReceipt, extractAmounts, pickAmount, detectCycle,
-  detectCardLast4, parseDateFrom, detectNextRenewal, detectTrialEnd,
+  parseDateFrom, detectNextRenewal, detectTrialEnd,
   addMonths, projectRenewal, serviceFromSubject, parseReceipt, consolidate
 };

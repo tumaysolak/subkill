@@ -8,22 +8,26 @@
 
 ---
 
-Onlarca yapay zeka aracı, SaaS hesabı, API kredisi ve alan adı; her biri ayrı karttan,
-ayrı tarihte, ayrı posta kutusuna. SubKill posta kutundaki makbuzları okuyup envanteri
-kendisi kurar, sonra üç soruyu cevaplar:
+Onlarca yapay zeka aracı, SaaS hesabı, API kredisi ve alan adı; her biri ayrı tarihte,
+ayrı posta kutusuna. SubKill posta kutundaki makbuzları okuyup envanteri kendisi kurar,
+sonra dört soruyu cevaplar:
 
-1. Bu ay ve bu yıl ne ödeyeceğim, hangi karttan?
+1. Bu ay ve bu yıl ne ödeyeceğim?
 2. Hangi aboneliğim bir diğerinin aynı işini yapıyor?
 3. Hangi aboneliğime aylardır girmedim?
+4. Hangi aboneliğim sessizce bitmiş ama hâlâ listede duruyor?
 
 ## Öne çıkanlar
 
 - **Gmail makbuz taraması** — IMAP üzerinden doğrudan bilgisayarından; servis adı, tutar,
-  para birimi, periyot, yenileme tarihi ve kartın son dört hanesi çıkarılır.
+  para birimi, ödeme periyodu ve yenileme tarihi çıkarılır. Birden fazla hesap bağlanabilir,
+  hepsi birlikte taranır.
+- **Günlük otomatik tarama** — belirli aralıklarla yeni makbuz geldi mi diye bakar.
+- **İptal tespiti** — iptal bildirimlerini tanır; bildirim gelmediyse yenilemesi geçmiş
+  ama makbuzu gelmemiş abonelikleri işaretler.
 - **Kullanım tespiti** — tarayıcı geçmişinden her servise en son ne zaman girdiğini bulur.
 - **Çakışma analizi** — aynı kategorideki abonelikleri aylık yükleri ve son kullanım
   tarihleriyle yan yana koyar.
-- **Kart yükü ve limit uyarısı** — hangi kartta o ay ne kadar birikiyor, limite ne kadar var.
 - **Deneme takibi** — ücretsiz denemeler ücrete dönmeden önce uyarır.
 - **Yenileme takvimi** — 12 aylık dağılım; yıllık kalemler düştükleri ayda görünür.
 - **TCMB kuru** — TL karşılıkları güncel kurla; çevrimdışıyken son bilinen kur kullanılır.
@@ -79,7 +83,7 @@ Hesap parolası çalışmaz ve istenmez.
 npm test
 ```
 
-Para ayrıştırma, makbuz okuma, tarih çıkarma, çakışma tespiti, kart yükü ve takvim
+Para ayrıştırma, makbuz okuma, tarih çıkarma, çakışma tespiti, iptal tespiti ve takvim
 hesaplarını kapsayan 24 test.
 
 ## Mimari
@@ -89,7 +93,7 @@ src/core/      Electron'dan bağımsız saf mantık (test edilebilir)
   catalog.js   servis kataloğu, kategori eşlemesi
   money.js     para birimi, periyot normalizasyonu, kur çevrimi
   parser.js    makbuz ayrıştırma
-  insights.js  özet, takvim, çakışma, ölü abonelik, kart yükü
+  insights.js  özet, takvim, çakışma, ölü abonelik, sessiz iptal
   store.js     yerel JSON deposu
 src/services/  dış dünya (Gmail IMAP, tarayıcı geçmişi, TCMB kuru)
 src/main.js    Electron ana süreç ve IPC yüzeyi

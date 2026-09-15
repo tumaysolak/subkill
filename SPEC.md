@@ -2,26 +2,28 @@
 
 ## Problem
 Kullanici onlarca yapay zeka ve SaaS aboneligine sahip. Hangi servise ne zaman uye
-oldugunu, yenilemenin ne zaman geldigini, hangi karttan cektigini, faturanin hangi
-posta kutusuna dustugunu takip edemiyor. Sonuc: unutulan yenilemeler, ayni isi yapan
-iki abonelik, aylardir girilmemis ama odenmeye devam eden hesaplar ve beklenmedik
-anlarda dolan kart limitleri.
+oldugunu, yenilemenin ne zaman geldigini, faturanin hangi posta kutusuna dustugunu
+takip edemiyor. Sonuc: unutulan yenilemeler, ayni isi yapan iki abonelik, aylardir
+girilmemis ama odenmeye devam eden hesaplar ve sessizce bitmis oldugu halde listede
+duran abonelikler.
 
 ## Cozum
 Tamamen yerel calisan bir masaustu uygulamasi. Veri kullanicinin makinesinde durur,
 hicbir sunucuya gitmez. Uygulama posta kutusundaki makbuzlari ve tarayici gecmisini
 okuyarak envanteri kendisi kurar, sonra uc soruyu cevaplar:
 
-1. Bu ay ve bu yil ne odeyecegim, hangi karttan?
+1. Bu ay ve bu yil ne odeyecegim?
 2. Hangi aboneligim bir digerinin ayni isini yapiyor?
 3. Hangi aboneligime aylardir girmedim?
+4. Hangi aboneligim sessizce bitmis ama hala listede duruyor?
 
 ## Kapsam disinda (bilincli kararlar)
 - Sifre saklamak. Uygulama sadece **giris yontemini** tutar (hangi e-posta, Google ile
   giris mi, sifre yoneticisinde mi). Parolanin kendisi asla girilmez.
 - Bulut senkronu. v1 tek makinede calisir; veri dosyasi kullanicinin kendi
   iCloud/Drive klasorune tasinabilir.
-- Banka entegrasyonu. Kart ekstresi CSV olarak elle aktarilir.
+- Banka ve kredi karti entegrasyonu. Kart takibi bilincli olarak kapsam disinda;
+  envanter yalnizca makbuzlardan kurulur.
 
 ## Veri modeli
 
@@ -36,7 +38,6 @@ okuyarak envanteri kendisi kurar, sonra uc soruyu cevaplar:
 | cycle | string | monthly / yearly / quarterly / weekly / usage / onetime |
 | nextRenewal | ISO date | bir sonraki yenileme |
 | lastCharge | ISO date | son gorulen odeme |
-| cardLast4 | string | kart son dort hane |
 | billingEmail | string | faturanin dustugu adres |
 | loginMethod | string | google / email / sso / apple / password-manager |
 | loginEmail | string | giris icin kullanilan adres (sifre degil) |
@@ -71,15 +72,18 @@ verir, uygulama sadece aylik yuku ve son kullanim tarihlerini yan yana koyar.
 **Olu abonelik**: `lastUsedAt` > 60 gun once VEYA hic kayit yok VE status=active
 → "iptal aday". 90 gunu gecen "yuksek oncelik".
 
-**Kart yuku**: her kart icin ilgili ayda dusecek tutarlarin toplami. `monthlyLimit`
-tanimliysa ve toplam limitin %80'ini asiyorsa uyari.
+
+**Iptal tespiti**: iki kanal. (1) Posta kutusundaki iptal bildirimleri taninir;
+"istediginiz zaman iptal edebilirsiniz" gibi pazarlama cumleleri elenir ve son
+makbuzdan eski bir iptal maili yok sayilir. (2) Sessiz iptal: yenilemesi gecmis ama
+yeni makbuzu gelmemis abonelikler isaretlenir (aylikta 45, yillikta 400 gun tolerans).
 
 **Deneme bitisi**: trialEndsAt 7 gun icindeyse kirmizi uyari (unutulup ucrete donmesin).
 
 ## Gmail ayristirma
 IMAP + Google uygulama sifresi. Konu/gonderen filtresi ile makbuz adaylarini toplar,
 her mailden: gonderen alan adi → katalog eslesmesi → servis adi + kategori + site,
-gövdeden tutar + para birimi + periyot + kart son 4 + deneme bitisi.
+gövdeden tutar + para birimi + periyot + yenileme tarihi + deneme bitisi.
 Ayni servisin birden fazla makbuzu varsa en yenisi kayda islenir, eskisi gecmis olur.
 Odeme aracilari (Stripe, Paddle, PayPal) servis adi olarak kabul edilmez; bu
 maillerde servis adi konu satirindan ve govde basliklarindan cikarilir.

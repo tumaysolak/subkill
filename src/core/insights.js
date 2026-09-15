@@ -27,7 +27,7 @@ function isActive(sub) {
   return sub && (sub.status === 'active' || sub.status === 'trial');
 }
 
-/** Genel ozet: aylik/yillik yuk, adet, kategori ve kart dagilimi. */
+/** Genel ozet: aylik/yillik yuk, adet, kategori ve para birimi dagilimi. */
 function summary(subs, opts = {}) {
   const rates = opts.rates;
   const base = opts.base || 'TRY';

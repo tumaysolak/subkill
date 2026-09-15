@@ -306,7 +306,7 @@ function renderTable() {
         el('div', { class: 'row-sub', text: [s.plan, state.categories[s.category]].filter(Boolean).join(' · ') })
       ]),
       el('td', { text: CYCLE_LABELS[s.cycle] || s.cycle }),
-      el('td', { class: 'num', text: native(s.amount, s.currency) }),
+      el('td', { class: 'num', text: s.amountUnknown ? '— (tutar bulunamadı)' : native(s.amount, s.currency) }),
       el('td', { class: 'num', text: tl(monthlyTl) }),
       el('td', { text: shortDate(s.nextRenewal) }),
       el('td', {}, [idle === null
@@ -876,6 +876,28 @@ function viewSettings() {
     pathLine,
     el('div', { class: 'filters', style: 'margin-top:12px' }, [
       el('button', { class: 'ghost', text: 'Yedek al (JSON)', onclick: async () => { const r = await api.exportData(); if (r.ok) toast('Yedek kaydedildi.', 'ok'); } }),
+      el('button', {
+        class: 'danger',
+        text: 'Envanteri sıfırla',
+        onclick: () => {
+          openModal('Envanteri sıfırla', el('div', { class: 'guide' }, [
+            el('p', { class: 'guide-lead', text: 'Tüm abonelik kayıtları silinir. Gmail hesapların, ayarların ve kurlar durur; yalnızca envanter boşalır.' }),
+            el('div', { class: 'guide-note', text: 'Hatalı bir taramadan sonra temiz başlamak için kullanışlıdır. Geri alınamaz, önce yedek almak isteyebilirsin.' })
+          ]), [
+            el('button', { class: 'ghost', text: 'Vazgeç', onclick: closeModal }),
+            el('button', {
+              class: 'danger',
+              text: 'Evet, sıfırla',
+              onclick: async () => {
+                const r = await api.resetSubscriptions();
+                closeModal();
+                await refresh(r.state);
+                toast('Envanter sıfırlandı.', 'ok');
+              }
+            })
+          ]);
+        }
+      }),
       el('button', {
         class: 'ghost',
         text: 'Yedekten yükle',

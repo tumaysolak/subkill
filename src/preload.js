@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('subkill', {
 
   upsertSubscription: (sub) => ipcRenderer.invoke('sub:upsert', sub),
   removeSubscription: (id) => ipcRenderer.invoke('sub:remove', id),
+  resetSubscriptions: () => ipcRenderer.invoke('subs:reset'),
 
   gmailAccounts: () => ipcRenderer.invoke('gmail:accounts'),
   gmailAddAccount: (creds) => ipcRenderer.invoke('gmail:addAccount', creds),

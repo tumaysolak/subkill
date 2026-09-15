@@ -234,6 +234,14 @@ ipcMain.handle('sub:remove', (_e, id) => {
 
 /* ---------- Gmail ---------- */
 
+ipcMain.handle('subs:reset', () => {
+  const d = store.get();
+  d.subscriptions = [];
+  d.scans = [];
+  store.save();
+  return { ok: true, state: buildState() };
+});
+
 ipcMain.handle('gmail:accounts', () => {
   const st = store.get().settings;
   return (st.gmailAccounts || []).map((a) => ({ ...a, hasPassword: Boolean(readPassword(a.user)) }));

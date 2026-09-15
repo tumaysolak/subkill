@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { normalizeName } = require('./parser');
 
 const EMPTY = {
   version: 1,
@@ -153,9 +154,8 @@ class Store {
     const d = this.get();
     const applied = [];
     for (const c of cancellations || []) {
-      const sub = d.subscriptions.find(
-        (s) => s.name.toLowerCase() === String(c.name).toLowerCase()
-      );
+      const key = normalizeName(c.name);
+      const sub = d.subscriptions.find((s) => normalizeName(s.name) === key);
       if (!sub || sub.status === 'cancelled') continue;
       if (c.cancelledAt && sub.lastCharge && c.cancelledAt < sub.lastCharge) continue;
       sub.status = 'cancelled';
@@ -174,9 +174,9 @@ class Store {
     const PRESERVE = ['loginMethod', 'loginEmail', 'notes', 'lastUsedAt', 'plan'];
 
     for (const r of records || []) {
-      const existing = d.subscriptions.find(
-        (s) => s.name.toLowerCase() === String(r.name).toLowerCase()
-      );
+      // Ayni servis farkli yazilislarla gelebiliyor; sadelestirilmis adla eslesir.
+      const key = normalizeName(r.name);
+      const existing = d.subscriptions.find((s) => normalizeName(s.name) === key);
       if (!existing) {
         d.subscriptions.push({
           id: newId(),

@@ -23,14 +23,17 @@ bilgisayarından kurulur ve hiçbir veri dışarıya gönderilmez.
 ## Ne yapar
 
 - Gmail kutusundaki fatura ve makbuz maillerini IMAP üzerinden tarar; servis adı,
-  tutar, para birimi, ödeme periyodu, yenileme tarihi ve kartın son dört hanesini
-  otomatik çıkarır.
+  tutar, para birimi, ödeme periyodu ve yenileme tarihini otomatik çıkarır.
+- Birden fazla Gmail hesabı bağlanabilir; hepsi birlikte taranır ve aynı servis
+  iki hesapta çıkarsa tek kayıtta birleşir.
+- Otomatik tarama: belirli aralıklarla bağlı hesapları tarayıp yeni makbuzları
+  envantere ekler.
+- İptal tespiti: iptal bildirimi maillerini tanır; bildirim yoksa yenilemesi
+  geçmiş ama makbuzu gelmemiş abonelikler için uyarı verir.
 - Tarayıcı geçmişinden her servise en son ne zaman girildiğini bulur ve uzun
   süredir kullanılmayan abonelikleri yıllık maliyetiyle listeler.
 - Aynı kategorideki abonelikleri aylık yükleri ve son kullanım tarihleriyle yan
   yana koyarak işlevsel çakışmaları gösterir.
-- Kartın son dört hanesi makbuzlardan okunur; elle kart eklenmez. Kart bazlı aylık
-  yükü hesaplar ve yazılan limite yaklaşıldığında uyarır.
 - Ücretsiz deneme süreleri bitmeden önce hatırlatır.
 - 12 aylık yenileme takvimi çıkarır; yıllık abonelikler düştükleri ayda görünür.
 - TCMB kuruyla TL karşılıklarını hesaplar.

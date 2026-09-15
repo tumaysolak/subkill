@@ -20,20 +20,57 @@ const TRIAL_HINTS = ['trial', 'deneme', 'free trial', 'trial ends', 'deneme sure
 
 const CANCEL_HINTS = ['cancell', 'canceled', 'iptal edildi', 'subscription ended', 'aboneligi', 'refund'];
 
-/** Mail bir odeme makbuzu adayi mi? */
+// Konu satirinda bunlardan biri varsa mail ciddi bir makbuz adayidir.
+const SUBJECT_RECEIPT = /(receipt|invoice|fatura|makbuz|payment (received|confirmation|successful)|your payment|payment to|tahsilat|odeme (alindi|onayi)|ödeme (alındı|onayı)|subscription (renewed|confirmation|payment)|abonelik (yenilendi|odemesi)|has been (charged|renewed)|order confirmation|siparis onayi|sipariş onayı|billing statement|trial (has )?started|your trial|deneme (basladi|başladı|suresi basladi)|your .{0,20}(bill|invoice) is ready|faturan[ıi]z haz[ıi]r)/i;
+
+// Govdede tutarla birlikte gecerse makbuz sayilir.
+const BODY_RECEIPT = /(amount (paid|charged|due)|total (paid|charged|amount)|grand total|genel toplam|toplam tutar|odenen tutar|ödenen tutar|invoice (number|no|#)|fatura (no|numaras[ıi]))/i;
+
+// Pazarlama/bulten isaretleri: bunlar varken ve makbuz kaniti yokken mail elenir.
+const MARKETING_SIGNALS = /(campaign id|utm_campaign|unsubscribe from|% off|indirim|webinar|join us|new (classes|features)|newsletter|bulten|bülten|davetlisiniz|son bir haftaniz)/i;
+
+// Ic yazismalar ve iletilen mailler makbuz degildir.
+const FORWARDED_THREAD = /(^|\n)\s*(from:.{0,120}\n\s*sent:|-{3,}\s*forwarded message|ilet[ıi]len ileti)/i;
+
+/**
+ * Mail bir odeme makbuzu mu?
+ *
+ * Eskiden tek bir anahtar kelime yetiyordu ve "subscription" gecen her bulten
+ * makbuz sayiliyordu. Gercek tarama sonucunda Grammarly kampanyasi LinkedIn
+ * aboneligi, sirket ici bir yazisma Google Ads aboneligi olarak kaydedilmisti.
+ * Artik konu satirinda net bir makbuz isareti ya da govdede tutar etiketiyle
+ * birlikte bir kanit aranıyor; pazarlama isaretleri eleniyor.
+ */
 function looksLikeReceipt(subject, body) {
-  const t = `${subject || ''} ${String(body || '').slice(0, 2000)}`.toLowerCase();
-  return RECEIPT_HINTS.some((h) => t.includes(h));
+  const subj = String(subject || '');
+  const text = String(body || '').slice(0, 6000);
+  const hay = `${subj}\n${text}`;
+
+  if (FORWARDED_THREAD.test(hay)) return false;
+
+  const strongSubject = SUBJECT_RECEIPT.test(subj);
+  const bodyEvidence = BODY_RECEIPT.test(hay);
+  const hasMoney = extractAmounts(hay).length > 0;
+
+  if (MARKETING_SIGNALS.test(hay) && !(strongSubject && (hasMoney || bodyEvidence))) return false;
+  if (strongSubject) return true;
+  return bodyEvidence && hasMoney;
 }
 
+// DIKKAT: para birimi kodlari buyuk harf aranir. Kucuk harfle de kabul
+// edilince Ingilizce "Try it free" cumlesindeki "Try" TRY para birimi
+// sayiliyor ve tutar 0 TRY olarak kaydediliyordu.
 const AMOUNT_PATTERNS = [
   // $12.99 / €9,99 / ₺450,00
   /([$€£₺])\s?([\d][\d.,]*)/g,
   // 12.99 USD / 450,00 TL
-  /([\d][\d.,]*)\s?(USD|EUR|GBP|TRY|TL)\b/gi,
+  /([\d][\d.,]*)\s?(USD|EUR|GBP|TRY|TL)\b/g,
   // USD 12.99
-  /\b(USD|EUR|GBP|TRY|TL)\s?([\d][\d.,]*)/gi
+  /\b(USD|EUR|GBP|TRY|TL)\s?([\d][\d.,]*)/g
 ];
+
+// "1 USD = 49,11 TRY" gibi kur satirlari tutar degildir.
+const FX_LINE = /(1\s*(USD|EUR|GBP)\s*=|exchange rate|doviz kuru|döviz kuru|kur:)/i;
 
 const SYMBOL_TO_CURRENCY = { $: 'USD', '€': 'EUR', '£': 'GBP', '₺': 'TRY' };
 
@@ -57,22 +94,57 @@ function extractAmounts(text) {
 
       const amount = money.parseAmount(rawAmount);
       if (amount === null || amount <= 0) continue;
+      // Kur satirindaki sayilar odenen tutar degildir.
+      const lineStart = t.lastIndexOf('\n', m.index) + 1;
+      let lineEnd = t.indexOf('\n', m.index);
+      if (lineEnd === -1) lineEnd = t.length;
+      const line = t.slice(lineStart, Math.min(lineEnd, lineStart + 200));
+      if (FX_LINE.test(line)) continue;
+
       const before = t.slice(Math.max(0, m.index - 60), m.index).toLowerCase();
-      const priority = /(total|toplam|amount due|amount paid|grand total|genel toplam|tutar|odenen)/.test(before) ? 2 : 1;
+      const priority = /(total|toplam|amount due|amount paid|amount charged|grand total|genel toplam|tutar|odenen|ödenen)/.test(before) ? 2 : 1;
       found.push({ amount, currency, priority, index: m.index });
     }
   }
   return found;
 }
 
-/** En olasi tutari secer: once "toplam" etiketli, sonra en buyuk. */
+/**
+ * Odenen tutari secer.
+ *
+ * Eski surumun hatasi: tum tutarlari para birimine bakmadan buyukluge gore
+ * siraliyordu. Yabanci servislerin Turkiye'ye gelen makbuzlarinda hem
+ * "$288.00" hem de karsiligi "₺14.144,91" yaziyor; sayisal olarak buyuk
+ * oldugu icin her zaman lira karsiligi seciliyordu. Artik once para birimi
+ * seciliyor, kiyaslama yalniz ayni birim icinde yapiliyor.
+ */
 function pickAmount(text) {
   const all = extractAmounts(text);
   if (!all.length) return { amount: null, currency: null };
+
+  // 1) "Toplam / amount paid" etiketli tutarlar varsa yalniz onlara bak.
   const maxPriority = Math.max(...all.map((x) => x.priority));
-  const pool = all.filter((x) => x.priority === maxPriority);
+  let pool = all.filter((x) => x.priority === maxPriority);
+
+  // 2) Para birimini sec. Yabanci birim ile TRY birlikte geciyorsa, TRY
+  //    cogu zaman cevrilmis karsiliktir; asil ucret yabanci birimdedir.
+  const currencies = [...new Set(pool.map((x) => x.currency))];
+  let currency = currencies[0];
+  if (currencies.length > 1) {
+    const foreign = currencies.filter((c) => c !== 'TRY');
+    if (foreign.length === 1) {
+      currency = foreign[0];
+    } else {
+      // Birden fazla yabanci birim varsa en sik geceni al.
+      const counts = {};
+      for (const x of pool) counts[x.currency] = (counts[x.currency] || 0) + 1;
+      currency = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    }
+  }
+
+  pool = pool.filter((x) => x.currency === currency);
   pool.sort((a, b) => b.amount - a.amount);
-  return { amount: pool[0].amount, currency: pool[0].currency };
+  return { amount: pool[0].amount, currency };
 }
 
 const CYCLE_PATTERNS = [
@@ -246,6 +318,39 @@ const NOT_CANCEL_PATTERNS = [
 /**
  * @returns {null|{name:string, cancelledAt:string|null, evidence:string}}
  */
+
+/**
+ * Servis adlarini karsilastirmak icin sadelestirir.
+ *
+ * Ayni servis makbuzlarda farkli yazilabiliyor: "Eleven Labs Inc.",
+ * "ElevenLabs", "Dcipher Analytics AB", "Dcipheranalytics". Sirket ekleri ve
+ * bosluklar atilinca bunlar tek kayitta birlesiyor.
+ */
+// Servis adi olamayacak kelimeler. Turkce makbuzlarda konu satirindan
+// "ek", "fatura", "odeme" gibi parcalar servis adi olarak cikabiliyordu.
+const JUNK_NAMES = new Set([
+  'ek', 'eki', 'fatura', 'faturasi', 'makbuz', 'odeme', 'ödeme', 'bilgi', 'bilgilendirme',
+  'hesap', 'hesabi', 'abonelik', 'yenileme', 'receipt', 'invoice', 'payment', 'billing',
+  'subscription', 'renewal', 'order', 'siparis', 'sipariş', 'mail', 'email', 'eposta',
+  'noreply', 'no-reply', 'destek', 'support', 'info', 'video', 'test'
+]);
+
+function isJunkName(name) {
+  const n = String(name || '').trim().toLowerCase();
+  if (n.length < 3) return true;
+  if (JUNK_NAMES.has(n)) return true;
+  if (/^\d+$/.test(n)) return true;
+  return false;
+}
+
+function normalizeName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[.,]/g, ' ')
+    .replace(/\b(inc|llc|ltd|limited|gmbh|bv|ab|corp|corporation|co|company|a\.?s|as|sirketi|şirketi)\b/g, ' ')
+    .replace(/[^a-z0-9ğüşıöç]+/g, '');
+}
+
 function parseCancellation(mail) {
   if (!mail) return null;
   const subject = mail.subject || '';
@@ -268,7 +373,9 @@ function parseCancellation(mail) {
     }
   }
   if (!name) {
-    const inBody = catalog.lookup(body.slice(0, 4000));
+    // Govdenin tamamina bakinca alt bilgideki baska markalar (ornegin bir
+    // kampanya mailindeki LinkedIn baglantisi) servis adi sanilıyordu.
+    const inBody = catalog.lookup(body.slice(0, 800));
     if (inBody) name = inBody.name;
   }
   if (!name) {
@@ -277,6 +384,8 @@ function parseCancellation(mail) {
     name = name.split('.').pop();
     name = name.charAt(0).toUpperCase() + name.slice(1);
   }
+
+  if (isJunkName(name)) return null;
 
   const d = mail.date ? new Date(mail.date) : null;
   return {
@@ -311,7 +420,9 @@ function parseReceipt(mail) {
     }
   }
   if (!name) {
-    const inBody = catalog.lookup(body.slice(0, 4000));
+    // Govdenin tamamina bakinca alt bilgideki baska markalar (ornegin bir
+    // kampanya mailindeki LinkedIn baglantisi) servis adi sanilıyordu.
+    const inBody = catalog.lookup(body.slice(0, 800));
     if (inBody) { entry = inBody; name = inBody.name; }
   }
   if (!name) {
@@ -320,6 +431,8 @@ function parseReceipt(mail) {
     name = name.split('.').pop();
     name = name.charAt(0).toUpperCase() + name.slice(1);
   }
+
+  if (isJunkName(name)) return null;
 
   const { amount, currency } = pickAmount(haystack);
   const cycle = detectCycle(haystack) || 'monthly';
@@ -336,6 +449,9 @@ function parseReceipt(mail) {
     name,
     plan: '',
     amount: amount === null ? 0 : amount,
+    // Fatura eki PDF olan makbuzlarda govdede tutar yok. Sifir yazip
+    // toplamlari bozmak yerine isaretlenip kullaniciya sorulur.
+    amountUnknown: amount === null,
     currency: currency || money.detectCurrency(haystack) || 'USD',
     cycle,
     lastCharge,
@@ -361,7 +477,7 @@ function consolidate(records) {
   const byName = new Map();
   const sorted = [...records].filter(Boolean).sort((a, b) => String(a.lastCharge || '').localeCompare(String(b.lastCharge || '')));
   for (const r of sorted) {
-    const key = r.name.toLowerCase();
+    const key = normalizeName(r.name) || r.name.toLowerCase();
     const prev = byName.get(key);
     if (!prev) { byName.set(key, { ...r, chargeCount: 1, history: [r.lastCharge].filter(Boolean) }); continue; }
     const merged = { ...prev };
@@ -377,6 +493,7 @@ function consolidate(records) {
 
 module.exports = {
   parseCancellation,
+  normalizeName,
   domainOf, looksLikeReceipt, extractAmounts, pickAmount, detectCycle,
   detectCardLast4, parseDateFrom, detectNextRenewal, detectTrialEnd,
   addMonths, projectRenewal, serviceFromSubject, parseReceipt, consolidate
